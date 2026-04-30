@@ -1,0 +1,69 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # for GitHub release notes
+      id-token: write   # for npm provenance (OIDC)
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm typecheck
+
+      - run: pnpm test
+
+      - run: pnpm build
+
+      - name: Publish to npm with provenance
+        run: pnpm publish --provenance --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Smoke test (npx -y @rendobar/mcp@<tag> --version)
+        run: |
+          # Wait briefly for npm registry to propagate.
+          sleep 30
+          VERSION="${GITHUB_REF_NAME#v}"
+          OUTPUT=$(npx -y "@rendobar/mcp@${VERSION}" --version)
+          if [ "$OUTPUT" != "$VERSION" ]; then
+            echo "::error::Smoke failed: expected '$VERSION', got '$OUTPUT'"
+            exit 1
+          fi
+          echo "Smoke OK: $OUTPUT"
+
+      - name: Publish to MCP official registry
+        run: |
+          npm install -g @modelcontextprotocol/mcp-publisher
+          mcp-publisher publish --file server.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  rollback-on-failure:
+    needs: publish
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open issue for failed release
+        run: |
+          gh issue create \
+            --title "Release ${GITHUB_REF_NAME} failed" \
+            --body "The release workflow failed. The npm version may already be live but a downstream step failed (smoke test or registry publish). Investigate and either deprecate the npm version or fix forward." \
+            --repo "${{ github.repository }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
