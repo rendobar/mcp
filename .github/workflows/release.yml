@@ -3,6 +3,12 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to publish (e.g. v1.0.0). Required only when run manually."
+        required: true
+        type: string
 
 # v1.0.0 bootstrap uses NPM_TOKEN. Once the package exists on npm, register a
 # Trusted Publisher at npmjs.com → @rendobar/mcp → Settings → Trusted Publisher
