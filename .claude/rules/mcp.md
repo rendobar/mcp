@@ -654,7 +654,7 @@ env:
 
 ---
 
-## SECTION 12 — House style
+## SECTION 11 — House style
 
 Every PR adding or changing a tool MUST:
 
@@ -673,7 +673,7 @@ Every PR adding or changing a tool MUST:
 
 ---
 
-## SECTION 13 — Anti-patterns observed in the wild (don't copy)
+## SECTION 12 — Anti-patterns observed in the wild (don't copy)
 
 - **Stripe re-throws every error** instead of using `isError: true`. We don't. GitHub's `isError` pattern is right for our shape (data the LLM can recover from).
 - **Filesystem reference server is monolithic** (~700 LOC, one file). Don't inherit. Use Supabase/`everything` modular layout.
@@ -684,7 +684,7 @@ Every PR adding or changing a tool MUST:
 
 ---
 
-## SECTION 14 — Spec & SDK references (cite when in doubt)
+## SECTION 13 — Spec & SDK references (cite when in doubt)
 
 - MCP spec (current stable): https://modelcontextprotocol.io/specification/2025-06-18
 - TS SDK source: https://github.com/modelcontextprotocol/typescript-sdk (use `v1.x` branch)
@@ -702,7 +702,7 @@ Production servers worth reading source of:
 
 ---
 
-## SECTION 15 — When this rule changes
+## SECTION 14 — When this rule changes
 
 If you change MCP architecture (transport, auth chain, tool registration pattern, error mapping):
 
