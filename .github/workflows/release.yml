@@ -8,8 +8,9 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # for GitHub release notes
-      id-token: write   # for npm provenance (OIDC)
+      contents: write   # for GitHub release notes (release-please attaches)
+      id-token: write   # OIDC token for npm Trusted Publisher
+      issues: write     # rollback step opens an issue on failure
     steps:
       - uses: actions/checkout@v4
 
@@ -19,38 +20,63 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          registry-url: https://registry.npmjs.org
+          # No registry-url: setting it writes _authToken placeholder to ~/.npmrc
+          # which overrides OIDC trusted-publisher auth and causes 404 on publish.
+          # Registry is configured manually below.
           cache: pnpm
 
+      - name: Configure npm registry (OIDC — no auth token)
+        run: |
+          echo "registry=https://registry.npmjs.org/" > ~/.npmrc
+          echo "always-auth=false" >> ~/.npmrc
+
+      - name: Upgrade npm for OIDC trusted publisher support (requires 11.5+)
+        run: npm install -g npm@latest
+
       - run: pnpm install --frozen-lockfile
-
       - run: pnpm typecheck
-
       - run: pnpm test
-
       - run: pnpm build
 
-      - name: Publish to npm with provenance
-        run: pnpm publish --provenance --access public --no-git-checks
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish to npm via OIDC trusted publisher
+        working-directory: .
+        run: |
+          # Retry up to 3 times for transient registry blips.
+          for i in 1 2 3; do
+            if npm publish --provenance --access public; then
+              exit 0
+            fi
+            echo "Publish attempt $i failed, retrying in 30s..."
+            sleep 30
+          done
+          echo "::error::Publish failed after 3 attempts"
+          exit 1
 
       - name: Smoke test (npx -y @rendobar/mcp@<tag> --version)
         run: |
-          # Wait briefly for npm registry to propagate.
-          sleep 30
           VERSION="${GITHUB_REF_NAME#v}"
-          OUTPUT=$(npx -y "@rendobar/mcp@${VERSION}" --version)
-          if [ "$OUTPUT" != "$VERSION" ]; then
-            echo "::error::Smoke failed: expected '$VERSION', got '$OUTPUT'"
-            exit 1
-          fi
-          echo "Smoke OK: $OUTPUT"
+          PKG="@rendobar/mcp@${VERSION}"
+          # npm CDN propagation backoff: 30s, 60s, 90s, 120s, 150s
+          for i in 1 2 3 4 5; do
+            sleep $((i * 30))
+            echo "Attempt $i: npx -y $PKG --version"
+            OUTPUT=$(npx -y "$PKG" --version 2>&1) || OUTPUT=""
+            if [ "$OUTPUT" = "$VERSION" ]; then
+              echo "Smoke OK: $OUTPUT"
+              exit 0
+            fi
+            echo "Got: '$OUTPUT' (expected: '$VERSION')"
+          done
+          echo "::error::Smoke test failed after 5 attempts"
+          exit 1
 
       - name: Publish to MCP official registry
+        # Best-effort — failure here doesn't roll back npm publish.
+        # If this step fails, fix forward: re-run the workflow or run mcp-publisher manually.
+        continue-on-error: true
         run: |
           npm install -g @modelcontextprotocol/mcp-publisher
-          mcp-publisher publish --file server.json
+          mcp-publisher publish --file server.json || echo "::warning::MCP registry publish failed — fix forward"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -58,12 +84,14 @@ jobs:
     needs: publish
     if: failure()
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
     steps:
       - name: Open issue for failed release
         run: |
           gh issue create \
             --title "Release ${GITHUB_REF_NAME} failed" \
-            --body "The release workflow failed. The npm version may already be live but a downstream step failed (smoke test or registry publish). Investigate and either deprecate the npm version or fix forward." \
+            --body "The release workflow failed. If npm publish succeeded but a downstream step (smoke / registry) failed, the package is already live — fix forward via a follow-up workflow re-run rather than rolling back. If npm publish itself failed, deprecate any partial version with: \`npm deprecate @rendobar/mcp@${GITHUB_REF_NAME#v} \"do not use\"\`." \
             --repo "${{ github.repository }}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
