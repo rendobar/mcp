@@ -11,9 +11,20 @@ import type { RendobarContext } from "../context.js";
  *   - _meta: client-supplied metadata (includes progressToken when set)
  *   - sessionId, requestId, etc.
  *
- * We don't depend on the exact internal shape — handlers receive the same value the SDK would.
+ * The SDK's `ToolCallback` is generic over input args via a union with `undefined`,
+ * which makes `Parameters<>` extraction collapse to `never`. We instead declare the
+ * structural minimum we depend on; the runtime value is whatever the SDK passes.
  */
-export type ToolExtra = Parameters<Parameters<McpServer["registerTool"]>[2]>[1];
+export interface ToolExtra {
+  signal: AbortSignal;
+  sessionId?: string;
+  requestId?: string | number;
+  _meta?: { progressToken?: string | number } & Record<string, unknown>;
+  sendNotification?: (n: {
+    method: string;
+    params: Record<string, unknown>;
+  }) => Promise<void>;
+}
 
 export interface ToolDef<I extends ZodRawShape, O extends ZodRawShape> {
   name: string;

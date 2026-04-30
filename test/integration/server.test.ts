@@ -86,7 +86,7 @@ describe("MCP server integration", () => {
     await cleanup();
   });
 
-  it("lists registered tools (5 expected: account + 4 jobs)", async () => {
+  it("lists registered tools (6 expected: account + 4 jobs + upload)", async () => {
     const { client, cleanup } = await makeClientServerPair();
     const tools = await client.listTools();
     const names = new Set(tools.tools.map((t) => t.name));
@@ -95,7 +95,7 @@ describe("MCP server integration", () => {
     expect(names.has("get_job")).toBe(true);
     expect(names.has("submit_job")).toBe(true);
     expect(names.has("cancel_job")).toBe(true);
-    // upload_file added in Tasks 22-25
+    expect(names.has("upload_file")).toBe(true);
     await client.close();
     await cleanup();
   });
