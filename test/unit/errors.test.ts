@@ -54,11 +54,13 @@ describe("withErrorMapping", () => {
   it("logs durationMs on both success and error", async () => {
     const ctx = fakeCtx();
     const slowOk = withErrorMapping(ctx, "slow", async () => {
-      await new Promise((r) => setTimeout(r, 5));
+      await new Promise((r) => setTimeout(r, 25));
       return { ok: 1 };
     });
     await slowOk();
     const callArg = ctx.logger.info.mock.calls[0]?.[0] as Record<string, unknown> | undefined;
-    expect(callArg?.durationMs).toBeGreaterThanOrEqual(5);
+    // 25ms sleep but assert ≥10ms — absorbs timer-resolution skew on fast CI runners
+    // where Date.now() ticks coarsely (saw 4ms reported on a 5ms sleep).
+    expect(callArg?.durationMs).toBeGreaterThanOrEqual(10);
   });
 });
