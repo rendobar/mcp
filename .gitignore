@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env / secrets
+.env
+.env.local
+*.local
+
+# Test fixtures (large binaries — created locally)
+test/fixtures/*.mp4
+test/fixtures/*.mov
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
