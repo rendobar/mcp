@@ -24,7 +24,22 @@ jobs:
       id-token: write   # OIDC for npm provenance (required even with token auth)
       issues: write     # rollback step opens an issue on failure
     steps:
+      - name: Resolve target tag
+        id: tag
+        run: |
+          # Auto-tag mode (push event): use the ref that triggered the workflow.
+          # Manual mode (workflow_dispatch): use the `tag` input.
+          if [ -n "${{ inputs.tag }}" ]; then
+            echo "ref=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+            echo "version=${{ inputs.tag }}" | sed 's/version=v/version=/' >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+            echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.tag.outputs.ref }}
 
       - uses: pnpm/action-setup@v4
         with: { version: 9 }
@@ -56,8 +71,9 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Smoke test (npx -y @rendobar/mcp@<tag> --version)
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
           PKG="@rendobar/mcp@${VERSION}"
           # npm CDN propagation backoff: 30s, 60s, 90s, 120s, 150s
           for i in 1 2 3 4 5; do
