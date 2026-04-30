@@ -7,6 +7,7 @@ export default defineConfig({
     pool: "forks",
     globals: false,
     testTimeout: 10_000,
+    globalSetup: ["./test/setup.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text", "html"],
