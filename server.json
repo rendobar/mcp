@@ -14,5 +14,7 @@
       "version": "1.0.0"
     }
   ],
-  "transports": ["stdio"]
+  "transports": [
+    "stdio"
+  ]
 }
