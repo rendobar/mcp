@@ -36,9 +36,23 @@ const emptyJobList = {
   meta: { total: 0, page: 1, limit: 10, pages: 0 },
 };
 
+const jobTypesResponse = {
+  data: [
+    {
+      type: "raw.ffmpeg",
+      tag: "FFmpeg",
+      summary: "Run an FFmpeg command",
+      needs: ["ffmpeg"],
+      pattern: null,
+      acceptsMedia: ["video", "image", "audio"],
+    },
+  ],
+};
+
 const msw = setupMsw(
   http.get(`${API_BASE}/billing/state`, () => HttpResponse.json(billingStateResponse)),
   http.get(`${API_BASE}/jobs`, () => HttpResponse.json(emptyJobList)),
+  http.get(`${API_BASE}/jobs/types`, () => HttpResponse.json(jobTypesResponse)),
 );
 
 beforeAll(() => msw.listen({ onUnhandledRequest: "error" }));
@@ -46,6 +60,7 @@ afterAll(() => msw.close());
 afterEach(() => msw.resetHandlers(
   http.get(`${API_BASE}/billing/state`, () => HttpResponse.json(billingStateResponse)),
   http.get(`${API_BASE}/jobs`, () => HttpResponse.json(emptyJobList)),
+  http.get(`${API_BASE}/jobs/types`, () => HttpResponse.json(jobTypesResponse)),
 ));
 
 async function makeClientServerPair() {
@@ -71,12 +86,16 @@ describe("MCP server integration", () => {
     await cleanup();
   });
 
-  it("lists registered tools (get_account + list_jobs at this checkpoint)", async () => {
+  it("lists registered tools (5 expected: account + 4 jobs)", async () => {
     const { client, cleanup } = await makeClientServerPair();
     const tools = await client.listTools();
     const names = new Set(tools.tools.map((t) => t.name));
     expect(names.has("get_account")).toBe(true);
     expect(names.has("list_jobs")).toBe(true);
+    expect(names.has("get_job")).toBe(true);
+    expect(names.has("submit_job")).toBe(true);
+    expect(names.has("cancel_job")).toBe(true);
+    // upload_file added in Tasks 22-25
     await client.close();
     await cleanup();
   });
