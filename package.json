@@ -5,17 +5,43 @@
   "license": "MIT",
   "description": "Rendobar — serverless media processing for AI agents",
   "homepage": "https://rendobar.com/docs/mcp/",
-  "repository": { "type": "git", "url": "https://github.com/rendobar/mcp.git" },
-  "bugs": { "url": "https://github.com/rendobar/mcp/issues" },
-  "keywords": ["mcp", "model-context-protocol", "rendobar", "ai", "video", "ffmpeg"],
-  "author": "Rendobar",
-  "bin": { "rendobar-mcp": "./dist/bin.js" },
-  "files": ["dist", "README.md", "LICENSE"],
-  "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" }
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rendobar/mcp.git"
   },
-  "engines": { "node": ">=20.10" },
-  "publishConfig": { "access": "public", "provenance": true },
+  "bugs": {
+    "url": "https://github.com/rendobar/mcp/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "rendobar",
+    "ai",
+    "video",
+    "ffmpeg"
+  ],
+  "author": "Rendobar",
+  "bin": {
+    "rendobar-mcp": "./dist/bin.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "engines": {
+    "node": ">=20.10"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
@@ -38,6 +64,7 @@
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "eslint": "^9.0.0",
+    "jiti": "^2.6.1",
     "msw": "^2.4.0",
     "tsup": "^8.3.0",
     "typescript": "^5.7.0",
