@@ -4,12 +4,18 @@ on:
   push:
     tags: ["v*"]
 
+# v1.0.0 bootstrap uses NPM_TOKEN. Once the package exists on npm, register a
+# Trusted Publisher at npmjs.com → @rendobar/mcp → Settings → Trusted Publisher
+# (repo: rendobar/mcp, workflow: release.yml). Then remove NODE_AUTH_TOKEN and
+# add `id-token: write` to switch to OIDC. See rendobar/rendobar publish-npm.yml
+# for the OIDC flow.
+
 jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
       contents: write   # for GitHub release notes (release-please attaches)
-      id-token: write   # OIDC token for npm Trusted Publisher
+      id-token: write   # OIDC for npm provenance (required even with token auth)
       issues: write     # rollback step opens an issue on failure
     steps:
       - uses: actions/checkout@v4
@@ -20,30 +26,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          # No registry-url: setting it writes _authToken placeholder to ~/.npmrc
-          # which overrides OIDC trusted-publisher auth and causes 404 on publish.
-          # Registry is configured manually below.
+          registry-url: https://registry.npmjs.org
           cache: pnpm
-
-      - name: Configure npm registry (OIDC — no auth token)
-        run: |
-          echo "registry=https://registry.npmjs.org/" > ~/.npmrc
-          echo "always-auth=false" >> ~/.npmrc
-
-      - name: Upgrade npm for OIDC trusted publisher support (requires 11.5+)
-        run: npm install -g npm@latest
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
 
-      - name: Publish to npm via OIDC trusted publisher
-        working-directory: .
+      - name: Publish to npm with provenance
         run: |
           # Retry up to 3 times for transient registry blips.
           for i in 1 2 3; do
-            if npm publish --provenance --access public; then
+            if pnpm publish --provenance --access public --no-git-checks; then
               exit 0
             fi
             echo "Publish attempt $i failed, retrying in 30s..."
@@ -51,6 +46,8 @@ jobs:
           done
           echo "::error::Publish failed after 3 attempts"
           exit 1
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Smoke test (npx -y @rendobar/mcp@<tag> --version)
         run: |
