@@ -57,7 +57,10 @@ describe("cancellation", () => {
 
   afterAll(async () => {
     msw.close();
-    await fs.rm(tmp, { recursive: true, force: true });
+    // Give Windows a moment to release any lingering file handles before removing the
+    // tmp dir. Without retries, ENOTEMPTY surfaces on Windows-Server runners even after
+    // the upload tool destroys the read stream on abort.
+    await fs.rm(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   });
 
   it("aborting a callTool aborts the SDK upload", async () => {

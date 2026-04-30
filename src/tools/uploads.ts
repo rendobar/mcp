@@ -110,20 +110,35 @@ const uploadFileTool = defineTool({
       nodeStream = transform;
     }
 
-    // Convert Node Readable → Web ReadableStream for fetch body compatibility.
-    // Cast justified: Node @types declares Readable.toWeb returns ReadableStream<any>;
-    // the SDK's BodyInit accepts ReadableStream<Uint8Array>. They're structurally the same.
-    const webStream = Readable.toWeb(nodeStream) as unknown as ReadableStream<Uint8Array>;
+    // Destroy the file reader if the caller aborts. Without this, Windows holds the
+    // file handle until the next GC sweep, breaking afterAll cleanup in tests and
+    // leaking fds in production aborts.
+    const onAbort = (): void => {
+      reader.destroy();
+      if (nodeStream !== reader) nodeStream.destroy();
+    };
+    extra.signal?.addEventListener("abort", onAbort, { once: true });
 
-    // 5. Upload (signal propagated for cancellation).
-    const result = await ctx.sdk.uploads.upload(webStream as unknown as BodyInit, {
-      filename: args.filename ?? path.basename(resolved),
-      signal: extra.signal,
-    });
+    try {
+      // Convert Node Readable → Web ReadableStream for fetch body compatibility.
+      // Cast justified: Node @types declares Readable.toWeb returns ReadableStream<any>;
+      // the SDK's BodyInit accepts ReadableStream<Uint8Array>. They're structurally the same.
+      const webStream = Readable.toWeb(nodeStream) as unknown as ReadableStream<Uint8Array>;
 
-    ctx.logger.info({ msg: "upload_complete", basename: path.basename(resolved), sizeBytes });
+      // 5. Upload (signal propagated for cancellation).
+      const result = await ctx.sdk.uploads.upload(webStream as unknown as BodyInit, {
+        filename: args.filename ?? path.basename(resolved),
+        signal: extra.signal,
+      });
 
-    return { downloadUrl: result.downloadUrl, sizeBytes };
+      ctx.logger.info({ msg: "upload_complete", basename: path.basename(resolved), sizeBytes });
+
+      return { downloadUrl: result.downloadUrl, sizeBytes };
+    } finally {
+      extra.signal?.removeEventListener("abort", onAbort);
+      // Belt-and-suspenders: destroy if not already, no-op if drained.
+      if (!reader.destroyed) reader.destroy();
+    }
   },
 });
 
