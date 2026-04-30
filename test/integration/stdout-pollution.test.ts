@@ -31,20 +31,26 @@ describe("stdout-pollution", () => {
     };
     child.stdin.write(JSON.stringify(req) + "\n");
 
-    // Give server time to respond, then signal shutdown.
-    // We wait until at least one stdout frame arrives, with a hard ceiling.
-    const waitForResponse = new Promise<void>((resolve) => {
+    // Wait until at least one full JSON-RPC frame (ending in \n) arrives. Windows
+    // CI runners are slow — bump ceiling to 10 s. Local typically responds in <500ms.
+    const RESPONSE_TIMEOUT_MS = 10_000;
+    await new Promise<void>((resolve, reject) => {
       const start = Date.now();
       const tick = (): void => {
-        if (stdoutChunks.length > 0 || Date.now() - start > 2500) {
+        const collected = stdoutChunks.join("");
+        if (collected.includes("\n")) {
           resolve();
+          return;
+        }
+        if (Date.now() - start > RESPONSE_TIMEOUT_MS) {
+          const stderr = stderrChunks.join("");
+          reject(new Error(`No JSON-RPC frame on stdout within ${RESPONSE_TIMEOUT_MS}ms.\nstdout: ${collected}\nstderr: ${stderr}`));
           return;
         }
         setTimeout(tick, 50);
       };
       tick();
     });
-    await waitForResponse;
     child.kill("SIGTERM");
     await new Promise<void>((resolve) => {
       child.on("exit", () => resolve());
@@ -70,5 +76,5 @@ describe("stdout-pollution", () => {
 
     // Stderr is allowed (logger writes there). It should contain at least the ready log.
     // We don't assert content, just that nothing pollutes stdout.
-  }, 15_000);
+  }, 20_000);
 });
