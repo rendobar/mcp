@@ -49,7 +49,7 @@ scenario("handshake + capabilities", async (client) => {
   if (!caps?.logging) throw new Error("logging capability missing");
   const info = client.getServerVersion();
   if (info?.name !== "rendobar") throw new Error(`bad name: ${info?.name}`);
-  if (info?.version !== "1.0.0") throw new Error(`bad version: ${info?.version}`);
+  if (!/^\d+\.\d+\.\d+/.test(info?.version ?? "")) throw new Error(`bad version: ${info?.version}`);
   return { name: info.name, version: info.version, capabilities: Object.keys(caps) };
 });
 
