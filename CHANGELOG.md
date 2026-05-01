@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/rendobar/mcp/compare/v1.0.0...v1.0.1) (2026-05-01)
+
+
+### Bug Fixes
+
+* upload_file Blob body, jobTimeoutMin seconds, instructions only raw.ffmpeg ([1d4666f](https://github.com/rendobar/mcp/commit/1d4666f44af7fa99ac60989775cff7075d7eb000))
+
 ## [1.0.0](https://github.com/rendobar/mcp/compare/v1.0.0...v1.0.0) (2026-04-30)
 
 
