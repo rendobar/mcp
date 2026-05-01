@@ -19,7 +19,7 @@ const fakeBillingState = (overrides: Record<string, unknown> = {}) => ({
     limits: {
       concurrentJobs: 25,
       apiRequestsPerMinute: 300,
-      maxJobTimeout: 900_000,
+      maxJobTimeout: 900,
       maxInputFileSize: 2_147_483_648,
       maxBatchSize: 100,
     },

@@ -48,7 +48,8 @@ const getAccountTool = defineTool({
         concurrentJobs: state.plan.limits.concurrentJobs,
         maxFileSize: formatBytes(state.plan.limits.maxInputFileSize),
         maxFileSizeBytes: state.plan.limits.maxInputFileSize,
-        jobTimeoutMin: Math.floor(state.plan.limits.maxJobTimeout / 60_000),
+        // API returns seconds; convert to minutes.
+        jobTimeoutMin: Math.floor(state.plan.limits.maxJobTimeout / 60),
       },
     };
   },

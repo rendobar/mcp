@@ -1,47 +1,10 @@
 import { z } from "zod";
-import { promises as fs, createReadStream } from "node:fs";
-import { Readable, Transform } from "node:stream";
+import { promises as fs } from "node:fs";
 import path from "node:path";
 import { defineTool, type ToolDef, type ToolExtra } from "./util.js";
 import { resolveSafe } from "../paths.js";
 import type { ZodRawShape } from "zod";
 import type { RendobarContext } from "../context.js";
-
-const PROGRESS_THRESHOLD_BYTES = 5 * 1024 * 1024;
-const PROGRESS_CHUNK_BYTES = 256 * 1024;
-
-class ProgressTransform extends Transform {
-  private bytesSent = 0;
-  private nextEmitAt = PROGRESS_CHUNK_BYTES;
-
-  constructor(
-    private readonly send: (n: { method: string; params: Record<string, unknown> }) => Promise<void>,
-    private readonly token: string | number,
-    private readonly total: number,
-  ) {
-    super();
-  }
-
-  override _transform(chunk: Buffer, _enc: BufferEncoding, cb: () => void): void {
-    this.bytesSent += chunk.length;
-    if (this.bytesSent >= this.nextEmitAt || this.bytesSent >= this.total) {
-      this.nextEmitAt = this.bytesSent + PROGRESS_CHUNK_BYTES;
-      // Fire-and-forget — don't block streaming on notification ack.
-      void this.send({
-        method: "notifications/progress",
-        params: {
-          progressToken: this.token,
-          progress: this.bytesSent,
-          total: this.total,
-        },
-      }).catch(() => {
-        /* best-effort */
-      });
-    }
-    this.push(chunk);
-    cb();
-  }
-}
 
 async function ensureCachedMaxFileSize(ctx: RendobarContext): Promise<number> {
   if (ctx.cachedMaxFileSize !== null) return ctx.cachedMaxFileSize;
@@ -94,77 +57,29 @@ const uploadFileTool = defineTool({
 
     ctx.logger.debug({ msg: "upload_start", basename: path.basename(resolved), sizeBytes });
 
-    // 4. Build the stream chain: file reader → optional progress transform → web stream.
-    const reader = createReadStream(resolved);
-    const progressToken = readProgressToken(extra);
-    const sender = readSendNotification(extra);
+    // 4. Read into memory and upload as a Blob.
+    //
+    // Streaming via Readable.toWeb(...) hit "RequestInit: duplex option is required
+    // when sending a body" because Node's fetch requires duplex:'half' for stream
+    // bodies and the SDK request layer doesn't set it. Buffering avoids that
+    // entirely — Blob is a fully-buffered BodyInit and works everywhere.
+    //
+    // Memory bound: maxInputFileSize (free=100MB, pro=2GB) — same ceiling the
+    // pre-stream gate enforces. v2 candidate: patch SDK to set duplex, then
+    // restore streaming + ProgressTransform for files >5MB.
+    const buffer = await fs.readFile(resolved);
+    const blob = new Blob([buffer]);
 
-    let nodeStream: Readable = reader;
-    if (
-      sizeBytes >= PROGRESS_THRESHOLD_BYTES &&
-      progressToken !== undefined &&
-      sender !== undefined
-    ) {
-      const transform = new ProgressTransform(sender, progressToken, sizeBytes);
-      reader.pipe(transform);
-      nodeStream = transform;
-    }
+    const result = await ctx.sdk.uploads.upload(blob, {
+      filename: args.filename ?? path.basename(resolved),
+      signal: extra.signal,
+    });
 
-    // Destroy the file reader if the caller aborts. Without this, Windows holds the
-    // file handle until the next GC sweep, breaking afterAll cleanup in tests and
-    // leaking fds in production aborts.
-    const onAbort = (): void => {
-      reader.destroy();
-      if (nodeStream !== reader) nodeStream.destroy();
-    };
-    extra.signal?.addEventListener("abort", onAbort, { once: true });
+    ctx.logger.info({ msg: "upload_complete", basename: path.basename(resolved), sizeBytes });
 
-    try {
-      // Convert Node Readable → Web ReadableStream for fetch body compatibility.
-      // Cast justified: Node @types declares Readable.toWeb returns ReadableStream<any>;
-      // the SDK's BodyInit accepts ReadableStream<Uint8Array>. They're structurally the same.
-      const webStream = Readable.toWeb(nodeStream) as unknown as ReadableStream<Uint8Array>;
-
-      // 5. Upload (signal propagated for cancellation).
-      const result = await ctx.sdk.uploads.upload(webStream as unknown as BodyInit, {
-        filename: args.filename ?? path.basename(resolved),
-        signal: extra.signal,
-      });
-
-      ctx.logger.info({ msg: "upload_complete", basename: path.basename(resolved), sizeBytes });
-
-      return { downloadUrl: result.downloadUrl, sizeBytes };
-    } finally {
-      extra.signal?.removeEventListener("abort", onAbort);
-      // Belt-and-suspenders: destroy if not already, no-op if drained.
-      if (!reader.destroyed) reader.destroy();
-    }
+    return { downloadUrl: result.downloadUrl, sizeBytes };
   },
 });
-
-// ── Helpers for ToolExtra access ──────────────────────────────
-// MCP SDK ToolExtra type isn't exported cleanly across all paths; pull progressToken
-// and sendNotification out via runtime checks. This keeps the unit tests easy
-// (they pass a plain object as extra) and avoids hairy type imports.
-
-function readProgressToken(extra: ToolExtra): string | number | undefined {
-  const meta = (extra as { _meta?: { progressToken?: string | number } })._meta;
-  return meta?.progressToken;
-}
-
-function readSendNotification(
-  extra: ToolExtra,
-): ((n: { method: string; params: Record<string, unknown> }) => Promise<void>) | undefined {
-  const fn = (
-    extra as {
-      sendNotification?: (n: {
-        method: string;
-        params: Record<string, unknown>;
-      }) => Promise<void>;
-    }
-  ).sendNotification;
-  return fn;
-}
 
 // Reuse the widen pattern from jobs.ts so tool arrays can be iterated by registerToolDef
 // without TS attempting to unify per-tool input shapes into an intersection.

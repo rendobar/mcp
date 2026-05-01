@@ -30,7 +30,7 @@ const billingState = (maxFileSize: number) => ({
     limits: {
       concurrentJobs: 25,
       apiRequestsPerMinute: 300,
-      maxJobTimeout: 900_000,
+      maxJobTimeout: 900,
       maxInputFileSize: maxFileSize,
       maxBatchSize: 100,
     },

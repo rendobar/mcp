@@ -34,7 +34,7 @@ describe("cancellation", () => {
               limits: {
                 concurrentJobs: 25,
                 apiRequestsPerMinute: 300,
-                maxJobTimeout: 900_000,
+                maxJobTimeout: 900,
                 maxInputFileSize: 999_999_999,
                 maxBatchSize: 100,
               },
