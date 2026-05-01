@@ -76,23 +76,32 @@ jobs:
           echo "::error::Publish failed after 3 attempts"
           exit 1
 
-      - name: Smoke test (npx -y @rendobar/mcp@<tag> --version)
+      - name: Smoke test (npx -y @rendobar/mcp@<tag> -- --version)
         env:
           VERSION: ${{ steps.tag.outputs.version }}
         run: |
           PKG="@rendobar/mcp@${VERSION}"
-          # npm CDN propagation backoff: 30s, 60s, 90s, 120s, 150s
+          # npm CDN propagation backoff: 30s, 60s, 90s, 120s, 150s.
+          # Use `-- --version` so npx unambiguously passes the flag to the bin
+          # (npx 11+ may consume bare --version as its own flag in some setups).
+          # Capture exit separately from output so non-zero npx exits with valid
+          # output (which sometimes happens on warnings) still get inspected.
           for i in 1 2 3 4 5; do
             sleep $((i * 30))
-            echo "Attempt $i: npx -y $PKG --version"
-            OUTPUT=$(npx -y "$PKG" --version 2>&1) || OUTPUT=""
-            if [ "$OUTPUT" = "$VERSION" ]; then
-              echo "Smoke OK: $OUTPUT"
+            echo "Attempt $i: npx -y $PKG -- --version"
+            OUTPUT=$(npx -y "$PKG" -- --version 2>&1)
+            EXIT=$?
+            # Trim trailing whitespace + take last non-empty line (npx may
+            # prepend warnings or the bin's stderr may interleave on Windows
+            # runners; CI is Linux but be defensive).
+            CLEAN=$(echo "$OUTPUT" | tr -d '\r' | grep -v '^$' | tail -1)
+            echo "exit=$EXIT clean='$CLEAN' raw='$OUTPUT'"
+            if [ "$CLEAN" = "$VERSION" ]; then
+              echo "Smoke OK"
               exit 0
             fi
-            echo "Got: '$OUTPUT' (expected: '$VERSION')"
           done
-          echo "::error::Smoke test failed after 5 attempts"
+          echo "::error::Smoke test failed after 5 attempts (last raw output above)"
           exit 1
 
       - name: Publish to MCP official registry
