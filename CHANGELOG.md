@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.2](https://github.com/rendobar/mcp/compare/v1.0.1...v1.0.2) (2026-05-01)
+
+
+### Bug Fixes
+
+* **ci:** mcp-publisher is a Go binary from GH Releases, not npm ([c32d5b1](https://github.com/rendobar/mcp/commit/c32d5b157aef1884012db65c19c286b32cefe32e))
+* **ci:** smoke test — pass --version through npx unambiguously, log exit + raw output ([653d3e0](https://github.com/rendobar/mcp/commit/653d3e0dc458c5a026103f6b301d7e36b99afb0b))
+
 ## [1.0.1](https://github.com/rendobar/mcp/compare/v1.0.0...v1.0.1) (2026-05-01)
 
 
