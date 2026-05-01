@@ -1,6 +1,6 @@
 {
   "name": "@rendobar/mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "license": "MIT",
   "description": "Rendobar — serverless media processing for AI agents",
