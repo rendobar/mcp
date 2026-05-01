@@ -106,13 +106,19 @@ jobs:
 
       - name: Publish to MCP official registry
         # Best-effort — failure here doesn't roll back npm publish.
-        # If this step fails, fix forward: re-run the workflow or run mcp-publisher manually.
+        # mcp-publisher is a Go binary distributed via GitHub Releases (not npm).
+        # Auth: OIDC via id-token:write (already granted above) for io.github.* names.
         continue-on-error: true
         run: |
-          npm install -g @modelcontextprotocol/mcp-publisher
-          mcp-publisher publish --file server.json || echo "::warning::MCP registry publish failed — fix forward"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PUB_VERSION="1.7.6"
+          curl -fsSL -o /tmp/mcp-publisher.tar.gz \
+            "https://github.com/modelcontextprotocol/registry/releases/download/v${PUB_VERSION}/mcp-publisher_linux_amd64.tar.gz"
+          tar -xzf /tmp/mcp-publisher.tar.gz -C /tmp
+          chmod +x /tmp/mcp-publisher
+          # Login via GitHub OIDC (uses ACTIONS_ID_TOKEN_REQUEST_* env auto-provided
+          # by GitHub Actions when id-token:write is granted).
+          /tmp/mcp-publisher login github-oidc || /tmp/mcp-publisher login github
+          /tmp/mcp-publisher publish || echo "::warning::MCP registry publish failed — fix forward"
 
   rollback-on-failure:
     needs: publish
