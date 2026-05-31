@@ -3,6 +3,10 @@ name: release-please
 on:
   push:
     branches: [main]
+  # Manual escape hatch for the "silent release skip" failure mode. When label
+  # drift or a missed tag stalls release-please, a maintainer can re-fire it
+  # here without pushing a dummy commit to main.
+  workflow_dispatch: {}
 
 permissions:
   contents: write
@@ -12,7 +16,80 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
+      # PAT (not GITHUB_TOKEN) on checkout so the tag pushed by "Tag released
+      # version" triggers release.yml — tags pushed by GITHUB_TOKEN do NOT fire
+      # downstream workflows. fetch-depth: 0 is needed for git tag + push.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+
       - uses: googleapis/release-please-action@v4
+        id: release
         with:
           config-file: .github/release-please-config.json
           manifest-file: .github/.release-please-manifest.json
+          # PAT so the release PR is opened/updated as a real user — release
+          # PRs opened by GITHUB_TOKEN do NOT fire ci.yml's pull_request
+          # trigger, so required checks never run and the PR stays BLOCKED.
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          # Single-root-package repo ("." in the manifest) trips release-please's
+          # own github-release step: getBranchComponent() resolves to the package
+          # name while the merged PR branch carries no component, so it skips the
+          # release and never tags (upstream bug googleapis/release-please#2214,
+          # open for root paths). We let release-please own only the version PR +
+          # CHANGELOG + manifest, and create the tag ourselves below. The GitHub
+          # Release itself is created by release.yml after a successful publish.
+          skip-github-release: true
+
+      # When release-please opens/updates a release PR, auto-merge it once the
+      # required checks pass. Uses the PAT so the eventual squash-merge to main
+      # re-triggers this workflow — otherwise the merge push is attributed to
+      # github-actions[bot] and fires nothing.
+      - name: Enable auto-merge on release PR
+        if: steps.release.outputs.pr
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+        run: |
+          PR_NUMBER=$(echo '${{ steps.release.outputs.pr }}' | node -e "
+            let d = '';
+            process.stdin.on('data', c => d += c);
+            process.stdin.on('end', () => console.log(JSON.parse(d).number));
+          ")
+          gh pr merge "$PR_NUMBER" --auto --squash --repo "${{ github.repository }}" || true
+
+      # When a release PR has just merged (no new PR opened this run), push the
+      # tag so release.yml publishes to npm + the MCP registry and cuts the
+      # GitHub Release, and flip the merged PR's label to 'autorelease: tagged'
+      # so release-please stops treating it as an outstanding untagged release
+      # (which would otherwise jam every future run).
+      - name: Tag released version
+        if: ${{ !steps.release.outputs.pr }}
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+        run: |
+          SUBJECT=$(git log -1 --pretty=%s)
+          case "$SUBJECT" in
+            "chore: release"*) ;;
+            *) echo "HEAD is not a release commit ('$SUBJECT') — nothing to tag."; exit 0 ;;
+          esac
+
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="v$VERSION"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "$TAG already exists — nothing to do."
+            exit 0
+          fi
+
+          echo "Tagging $TAG at $(git rev-parse --short HEAD)"
+          git tag "$TAG"
+          git push origin "$TAG"   # PAT-authenticated push fires release.yml
+
+          # Clear the release-please bookkeeping label on the merged release PR.
+          PR=$(printf '%s' "$SUBJECT" | grep -oE '#[0-9]+' | head -1 | tr -d '#')
+          if [ -n "$PR" ]; then
+            gh pr edit "$PR" \
+              --repo "${{ github.repository }}" \
+              --remove-label "autorelease: pending" \
+              --add-label "autorelease: tagged" || true
+          fi

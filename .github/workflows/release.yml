@@ -104,6 +104,31 @@ jobs:
           echo "::error::Smoke test failed after 5 attempts (last raw output above)"
           exit 1
 
+      - name: Create GitHub Release
+        # Best-effort — npm publish above is the source of truth. release-please
+        # skips its own github-release (see release-please.yml: upstream bug
+        # #2214 on root packages), so we cut the release here off the CHANGELOG
+        # it maintained. The tag already exists (pushed by release-please.yml).
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.tag.outputs.version }}
+          REF: ${{ steps.tag.outputs.ref }}
+        run: |
+          # Extract this version's section from CHANGELOG.md (release-please
+          # writes "## [X.Y.Z]" headers). Fall back to auto-generated notes.
+          NOTES=$(awk -v v="$VERSION" '
+            $0 ~ "^## \\[" v "\\]" { grab=1; next }
+            grab && /^## \[/ { exit }
+            grab { print }
+          ' CHANGELOG.md 2>/dev/null)
+          if [ -n "$NOTES" ]; then
+            printf '%s\n' "$NOTES" > /tmp/notes.md
+            gh release create "$REF" --title "$REF" --notes-file /tmp/notes.md --verify-tag
+          else
+            gh release create "$REF" --title "$REF" --generate-notes --verify-tag
+          fi
+
       - name: Publish to MCP official registry
         # Best-effort — failure here doesn't roll back npm publish.
         # mcp-publisher is a Go binary distributed via GitHub Releases (not npm).
