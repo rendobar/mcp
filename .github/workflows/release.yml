@@ -64,7 +64,16 @@ jobs:
       - run: pnpm build
 
       - name: Publish to npm via OIDC trusted publisher
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
         run: |
+          # Idempotent: npm publish 403s on an existing version, so a recovery
+          # re-run (after a later step like smoke/registry failed) would abort
+          # here. If this version is already live, treat publish as done.
+          if [ "$(npm view "@rendobar/mcp@${VERSION}" version 2>/dev/null)" = "$VERSION" ]; then
+            echo "@rendobar/mcp@${VERSION} already published — skipping publish."
+            exit 0
+          fi
           # Retry up to 3 times for transient registry blips.
           for i in 1 2 3; do
             if npm publish --provenance --access public; then
@@ -80,6 +89,11 @@ jobs:
         env:
           VERSION: ${{ steps.tag.outputs.version }}
         run: |
+          # This step drives its own retry loop. GitHub's default `bash -e`
+          # would abort on the first npx miss (slow CDN propagation right after
+          # publish) inside `OUTPUT=$(npx ...)`, before EXIT is even captured —
+          # defeating the backoff entirely. Disable errexit for the loop.
+          set +e
           PKG="@rendobar/mcp@${VERSION}"
           # npm CDN propagation backoff: 30s, 60s, 90s, 120s, 150s.
           # Use `-- --version` so npx unambiguously passes the flag to the bin
