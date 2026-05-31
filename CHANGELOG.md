@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/rendobar/mcp/compare/v1.0.2...v1.0.3) (2026-05-31)
+
+
+### Bug Fixes
+
+* **ci:** smoke retry defeated by errexit; make npm publish idempotent ([#14](https://github.com/rendobar/mcp/issues/14)) ([d285c88](https://github.com/rendobar/mcp/commit/d285c8842b9747033603401809165c6d6820d22a))
+
 ## [1.0.2](https://github.com/rendobar/mcp/compare/v1.0.1...v1.0.2) (2026-05-31)
 
 
