@@ -1,8 +1,38 @@
-# @rendobar/mcp
+<p align="center">
+  <a href="https://rendobar.com">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://cdn.rendobar.com/assets/brand/logo-mark.svg">
+      <img alt="Rendobar" src="https://cdn.rendobar.com/assets/brand/logo-mark-black.svg" width="80">
+    </picture>
+  </a>
+</p>
 
-> Rendobar — serverless media processing for AI agents.
+<h1 align="center">@rendobar/mcp</h1>
+
+<p align="center">
+  <strong>Serverless media processing for AI agents.</strong><br>
+  The official Model Context Protocol server for Rendobar.
+</p>
+
+<p align="center">
+  <a href="https://rendobar.com">Website</a> &nbsp;·&nbsp;
+  <a href="https://rendobar.com/docs/mcp/">MCP docs</a> &nbsp;·&nbsp;
+  <a href="https://www.npmjs.com/package/@rendobar/mcp">npm</a> &nbsp;·&nbsp;
+  <a href="https://discord.gg/kAGqjBzx8N">Discord</a>
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/@rendobar/mcp"><img src="https://img.shields.io/npm/v/@rendobar/mcp?style=flat-square&color=059669&label=npm" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/@rendobar/mcp"><img src="https://img.shields.io/npm/dm/@rendobar/mcp?style=flat-square&color=059669" alt="npm downloads"></a>
+  <img src="https://img.shields.io/npm/l/@rendobar/mcp?style=flat-square&color=059669" alt="MIT license">
+  <img src="https://img.shields.io/node/v/@rendobar/mcp?style=flat-square&color=059669" alt="Node version">
+</p>
+
+---
 
 `@rendobar/mcp` is the official Model Context Protocol server for [Rendobar](https://rendobar.com). It lets AI agents in Claude Desktop, Cursor, Cline, Windsurf, Zed, VS Code, Claude Code, and Continue submit Rendobar jobs and upload local files in a single tool call.
+
+The difference from the hosted MCP at `api.rendobar.com`: this server runs locally, so it can read and upload files straight from your machine. An agent can take a video on your disk, run an FFmpeg job on it, and hand back the result without you touching a browser.
 
 ## Install
 
@@ -107,13 +137,22 @@ env:
 | `cancel_job` | Cancel a waiting/dispatched job. |
 | `get_account` | Check balance, plan limits, active job count. |
 
+## Local vs hosted MCP
+
+| | `@rendobar/mcp` (this package) | Hosted MCP (`api.rendobar.com`) |
+|---|---|---|
+| Transport | stdio, spawned by your client | Streamable HTTP |
+| Local file upload | Yes, the whole point | No, server has no disk |
+| Setup | `npx` line in a config file | Bearer API key over HTTP |
+| Best for | Claude Desktop, Cursor, Cline, Zed, local agents | claude.ai web, ChatGPT, hosted gateways |
+
 ## Authentication
 
 Three sources, first match wins:
 
 1. `--api-key=<key>` flag
 2. `RENDOBAR_API_KEY` environment variable
-3. `~/.config/rendobar/credentials.json` (Unix) / `%APPDATA%\rendobar\credentials.json` (Windows) — written by Rendobar CLI's `rb login` (CLI v1.1+)
+3. `~/.config/rendobar/credentials.json` (Unix) / `%APPDATA%\rendobar\credentials.json` (Windows), written by Rendobar CLI's `rb login` (CLI v1.1+)
 
 ## Troubleshooting
 
@@ -131,11 +170,11 @@ Use `"command": "npx.cmd"` instead of `"command": "npx"` if your client doesn't 
 
 ### Server fails to start
 
-Check logs in your client's output panel. Server writes JSON lines to stderr — look for entries with `level: "error"`.
+Check logs in your client's output panel. The server writes JSON lines to stderr. Look for entries with `level: "error"`.
 
 ## Contributing
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md). For AI-assisted development, see [CLAUDE.md](./CLAUDE.md).
+See [CONTRIBUTING.md](./CONTRIBUTING.md). For AI-assisted development, see [AGENTS.md](./AGENTS.md) and [CLAUDE.md](./CLAUDE.md).
 
 ## License
 
