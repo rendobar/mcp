@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.4](https://github.com/rendobar/mcp/compare/v1.0.3...v1.0.4) (2026-06-01)
+
+
+### Bug Fixes
+
+* **ci:** smoke test broken on npm 11 — install + run bin directly ([#18](https://github.com/rendobar/mcp/issues/18)) ([660407b](https://github.com/rendobar/mcp/commit/660407bf5edf2ca708b419e076ed4707e30420be))
+
 ## [1.0.3](https://github.com/rendobar/mcp/compare/v1.0.2...v1.0.3) (2026-05-31)
 
 
