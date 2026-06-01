@@ -85,37 +85,48 @@ jobs:
           echo "::error::Publish failed after 3 attempts"
           exit 1
 
-      - name: Smoke test (npx -y @rendobar/mcp@<tag> -- --version)
+      - name: Smoke test (install published package + run bin)
         env:
           VERSION: ${{ steps.tag.outputs.version }}
         run: |
-          # This step drives its own retry loop. GitHub's default `bash -e`
-          # would abort on the first npx miss (slow CDN propagation right after
-          # publish) inside `OUTPUT=$(npx ...)`, before EXIT is even captured —
-          # defeating the backoff entirely. Disable errexit for the loop.
+          # Step drives its own retry loop; disable errexit so a failed npm
+          # call (e.g. CDN not propagated yet) doesn't abort before we retry.
           set +e
           PKG="@rendobar/mcp@${VERSION}"
-          # npm CDN propagation backoff: 30s, 60s, 90s, 120s, 150s.
-          # Use `-- --version` so npx unambiguously passes the flag to the bin
-          # (npx 11+ may consume bare --version as its own flag in some setups).
-          # Capture exit separately from output so non-zero npx exits with valid
-          # output (which sometimes happens on warnings) still get inspected.
+
+          # Why not `npx @rendobar/mcp -- --version`: under npm 11, npx resolves
+          # the bin name (`rendobar-mcp`) rather than the package and fails with
+          # "rendobar-mcp: not found". Install into a throwaway dir and invoke
+          # the bin file directly with node — deterministic across npm versions
+          # and platforms, and it still proves the published artifact runs.
+          TMP=$(mktemp -d)
+          trap 'rm -rf "$TMP"' EXIT
+
+          # Wait for npm CDN propagation (cheap metadata check), then install.
           for i in 1 2 3 4 5; do
             sleep $((i * 30))
-            echo "Attempt $i: npx -y $PKG -- --version"
-            OUTPUT=$(npx -y "$PKG" -- --version 2>&1)
-            EXIT=$?
-            # Trim trailing whitespace + take last non-empty line (npx may
-            # prepend warnings or the bin's stderr may interleave on Windows
-            # runners; CI is Linux but be defensive).
-            CLEAN=$(echo "$OUTPUT" | tr -d '\r' | grep -v '^$' | tail -1)
-            echo "exit=$EXIT clean='$CLEAN' raw='$OUTPUT'"
-            if [ "$CLEAN" = "$VERSION" ]; then
-              echo "Smoke OK"
-              exit 0
+            if [ "$(npm view "$PKG" version 2>/dev/null)" = "$VERSION" ]; then
+              echo "Propagated on attempt $i; installing."
+              break
             fi
+            echo "Attempt $i: $PKG not on registry yet."
           done
-          echo "::error::Smoke test failed after 5 attempts (last raw output above)"
+
+          ( cd "$TMP" && npm init -y >/dev/null 2>&1 && npm install "$PKG" >/dev/null 2>&1 )
+          BIN="$TMP/node_modules/@rendobar/mcp/dist/bin.js"
+          if [ ! -f "$BIN" ]; then
+            echo "::error::Install failed — $BIN missing (package not propagated or broken)."
+            exit 1
+          fi
+
+          OUTPUT=$(node "$BIN" --version 2>&1)
+          CLEAN=$(echo "$OUTPUT" | tr -d '\r' | grep -v '^$' | tail -1)
+          echo "version output: '$CLEAN' (raw: '$OUTPUT')"
+          if [ "$CLEAN" = "$VERSION" ]; then
+            echo "Smoke OK"
+            exit 0
+          fi
+          echo "::error::Smoke failed — bin printed '$CLEAN', expected '$VERSION'."
           exit 1
 
       - name: Create GitHub Release
