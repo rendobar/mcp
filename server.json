@@ -9,9 +9,10 @@
   "version": "1.0.4",
   "packages": [
     {
-      "registry": "npm",
-      "name": "@rendobar/mcp",
-      "version": "1.0.0"
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "@rendobar/mcp",
+      "version": "1.0.4"
     }
   ],
   "transports": [
