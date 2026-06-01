@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.6](https://github.com/rendobar/mcp/compare/v1.0.5...v1.0.6) (2026-06-01)
+
+
+### Bug Fixes
+
+* **registry:** add required per-package transport to server.json ([#23](https://github.com/rendobar/mcp/issues/23)) ([40920b4](https://github.com/rendobar/mcp/commit/40920b4f5ed6b81def6a6afe0a0a2a047f7e3918))
+
+## [1.0.5](https://github.com/rendobar/mcp/compare/v1.0.4...v1.0.5) (2026-06-01)
+
+
+### Bug Fixes
+
+* **registry:** correct server.json schema for MCP registry publish ([#20](https://github.com/rendobar/mcp/issues/20)) ([9d823eb](https://github.com/rendobar/mcp/commit/9d823eb1f10b528158b1e3614a3eb14f55340a5e))
+
 ## [1.0.4](https://github.com/rendobar/mcp/compare/v1.0.3...v1.0.4) (2026-06-01)
 
 
