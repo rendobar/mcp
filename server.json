@@ -12,10 +12,10 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@rendobar/mcp",
-      "version": "1.0.4"
+      "version": "1.0.5",
+      "transport": {
+        "type": "stdio"
+      }
     }
-  ],
-  "transports": [
-    "stdio"
   ]
 }
