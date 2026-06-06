@@ -2,46 +2,40 @@ import { z, type ZodRawShape } from "zod";
 import { defineTool, type ToolDef } from "./util.js";
 
 /**
- * The clean job-result shape returned by `GET /jobs/:id` (and the list endpoint).
+ * The unified job-result shape returned by `GET /jobs/:id` (and the list endpoint)
+ * on `complete`. Every job type — probe, captions, ffmpeg, frame extraction —
+ * returns the SAME shape:
+ *
+ *   - `data`  — the computed JSON answer (probe info, detections, transcript).
+ *               `null` for file-only jobs.
+ *   - `file`  — the headline produced file: a single output OR a stream manifest
+ *               (`.m3u8` / `.mpd`). `null` for data-only jobs and multi-file sets.
+ *   - `files` — every produced file. `[]` for data-only jobs.
+ *   - `expiresAt` — epoch ms; present iff `files` is non-empty.
  *
  * `@rendobar/sdk`'s typed `JobResponse` still declares the legacy flat fields
- * (outputUrl / outputMeta / errorCode / errorMessage / priceFormatted), but the
- * live API now returns a discriminated `output` (on `kind`), a structured
- * `error`, and a `cost` object. The SDK does not Zod-strip responses at runtime,
- * so the new fields survive on the object. We parse them at this boundary (per
- * type-safety.md) instead of reaching for an `as` cast; every field is optional
- * so responses that omit one parse cleanly to `undefined`.
+ * (outputUrl / outputMeta / errorCode / errorMessage), but the live API now
+ * returns this unified `output`, a structured `error`, and a `cost` object. The
+ * SDK does not Zod-strip responses at runtime, so the new fields survive on the
+ * object. We parse them at this boundary (per type-safety.md) instead of reaching
+ * for an `as` cast; missing optional fields parse cleanly to `undefined`.
  */
-const outputSchema = z.discriminatedUnion("kind", [
-  z.object({
-    kind: z.literal("file"),
-    url: z.string(),
-    poster: z.string().nullable().optional(),
-    meta: z
-      .object({
-        format: z.string().optional(),
-        width: z.number().optional(),
-        height: z.number().optional(),
-        durationMs: z.number().optional(),
-        sizeBytes: z.number().optional(),
-      })
-      .optional(),
-  }),
-  z.object({
-    kind: z.literal("stream"),
-    url: z.string(),
-    manifest: z.enum(["hls", "dash"]),
-    baseUrl: z.string(),
-    fileCount: z.number(),
-    manifestUrl: z.string(),
-  }),
-  z.object({
-    kind: z.literal("set"),
-    baseUrl: z.string(),
-    fileCount: z.number(),
-    manifestUrl: z.string(),
-  }),
-]);
+const fileSchema = z.object({
+  url: z.string(),
+  path: z.string(),
+  // Open enum: video|image|audio|captions|playlist|data|other, but the API may
+  // grow the set — accept any string rather than reject unknown types.
+  type: z.string(),
+  size: z.number(),
+  meta: z.record(z.string(), z.unknown()).optional(),
+});
+
+const outputSchema = z.object({
+  data: z.unknown(),
+  file: fileSchema.nullable(),
+  files: fileSchema.array(),
+  expiresAt: z.number().nullable(),
+});
 
 const jobShapeSchema = z.object({
   output: outputSchema.nullish(),
@@ -72,45 +66,21 @@ function parseJobShape(job: unknown): ParsedJobShape {
 }
 
 /**
- * Reshape a discriminated `output` to the compact form agents read: file/stream
- * surface the playable `url`; set surfaces the `baseUrl`. fileCount/manifestUrl
- * ride along for multi-file collections so the agent can fetch every part.
+ * Reshape the unified `output` to the compact form agents read: pass `data`
+ * through when present (the computed answer), surface the headline `file` (url +
+ * type + meta), and the full `files` list with a count. `expiresAt` rides along
+ * when files exist so the agent knows the URLs are time-limited.
  */
 function reshapeOutput(output: Output): Record<string, unknown> {
-  switch (output.kind) {
-    case "file": {
-      const out: Record<string, unknown> = { kind: "file", url: output.url };
-      const meta = output.meta;
-      if (meta !== undefined) {
-        if (meta.format !== undefined) out.format = meta.format;
-        if (meta.width !== undefined && meta.height !== undefined) {
-          out.resolution = `${meta.width}x${meta.height}`;
-        }
-        if (meta.durationMs !== undefined) out.durationMs = meta.durationMs;
-        if (meta.sizeBytes !== undefined) out.sizeBytes = meta.sizeBytes;
-      }
-      return out;
-    }
-    case "stream":
-      return {
-        kind: "stream",
-        url: output.url,
-        manifest: output.manifest,
-        fileCount: output.fileCount,
-        manifestUrl: output.manifestUrl,
-      };
-    case "set":
-      return {
-        kind: "set",
-        baseUrl: output.baseUrl,
-        fileCount: output.fileCount,
-        manifestUrl: output.manifestUrl,
-      };
-    default: {
-      const _exhaustive: never = output;
-      throw new Error(`Unhandled output kind: ${JSON.stringify(_exhaustive)}`);
-    }
+  const out: Record<string, unknown> = {};
+  if (output.data !== null && output.data !== undefined) out.data = output.data;
+  if (output.file !== null) out.file = output.file;
+  if (output.files.length > 0) {
+    out.fileCount = output.files.length;
+    out.files = output.files;
   }
+  if (output.expiresAt !== null) out.expiresAt = output.expiresAt;
+  return out;
 }
 
 const listJobsTool = defineTool({
@@ -149,8 +119,14 @@ const listJobsTool = defineTool({
           cost: shape.cost?.formatted ?? null,
         };
         if (j.status === "complete" && shape.output) {
-          // file/stream surface a playable url; set surfaces baseUrl + fileCount.
-          entry.output = reshapeOutput(shape.output);
+          // Compact per-entry summary: the headline file url (if any) and whether
+          // a computed `data` answer is present. Full output is on get_job.
+          const o = shape.output;
+          const summary: Record<string, unknown> = {};
+          if (o.file !== null) summary.url = o.file.url;
+          if (o.files.length > 0) summary.fileCount = o.files.length;
+          if (o.data !== null && o.data !== undefined) summary.hasData = true;
+          entry.output = summary;
         }
         return entry;
       }),
@@ -165,7 +141,7 @@ const getJobTool = defineTool({
   name: "get_job",
   title: "Get Rendobar Job",
   description:
-    "Check status and get results of a submitted job. Poll until status is 'complete' or 'failed'. Returns progress, current step, cost, and output when done. The output object is discriminated by `kind`: 'file' and 'stream' carry a playable `url`; 'set' carries a `baseUrl`, and multi-file outputs include `fileCount` + `manifestUrl`. Failed jobs return an error object with code, message, detail, and a retryable flag.",
+    "Check status and get results of a submitted job. Poll until status is 'complete' or 'failed'. Returns progress, current step, cost, and output when done. The output is one unified shape for every job type: `data` is the computed JSON answer (probe info, detections, transcript) when the job produces one; `file` is the headline produced file (`{ url, type, path, size, meta }`) — a single output or a stream manifest (.m3u8/.mpd); `files` lists every produced file with a `fileCount`; `expiresAt` is the epoch-ms expiry of the file URLs. Data-only jobs have `file` null and no files; file-only jobs have no `data`. Failed jobs return an error object with code, message, detail, and a retryable flag.",
   inputSchema: {
     jobId: z.string().describe("Job ID returned by submit_job (e.g. 'job_abc123')"),
   },
@@ -195,7 +171,7 @@ const getJobTool = defineTool({
     if (job.status === "complete") {
       if (shape.cost) result.cost = shape.cost.formatted;
       if (job.completedAt !== null) result.durationMs = job.completedAt - job.createdAt;
-      // Discriminated output: file/stream → url, set → baseUrl. See reshapeOutput.
+      // Unified output: data (computed answer) + file (headline) + files. See reshapeOutput.
       if (shape.output) result.output = reshapeOutput(shape.output);
     }
 
