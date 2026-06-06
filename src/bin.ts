@@ -99,6 +99,17 @@ async function main(): Promise<void> {
   process.on("SIGINT", () => { void shutdown("SIGINT"); });
   process.on("SIGTERM", () => { void shutdown("SIGTERM"); });
 
+  // Booting without a key is allowed (so hosts can list tools before auth is
+  // configured); warn on stderr so an interactive user notices the misconfig.
+  if (config.apiKey === null) {
+    logger.warn({
+      msg: "no_api_key",
+      detail:
+        "Started without an API key. Tools are listed but will fail when called. " +
+        "Set RENDOBAR_API_KEY to enable them.",
+    });
+  }
+
   // Connect transport.
   const transport = new StdioServerTransport();
   await server.connect(transport);

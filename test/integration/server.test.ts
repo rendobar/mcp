@@ -63,10 +63,10 @@ afterEach(() => msw.resetHandlers(
   http.get(`${API_BASE}/jobs/types`, () => HttpResponse.json(jobTypesResponse)),
 ));
 
-async function makeClientServerPair() {
+async function makeClientServerPair(apiKey: string | null = "rb_test") {
   const logger = createLogger({ level: "error" }); // quiet during tests
   const { server, cleanup } = await createRendobarMcpServer({
-    config: { apiKey: "rb_test", apiBase: API_BASE, logLevel: "error" },
+    config: { apiKey, apiBase: API_BASE, logLevel: "error" },
     logger,
   });
   const [clientT, serverT] = InMemoryTransport.createLinkedPair();
@@ -151,6 +151,32 @@ describe("MCP server integration", () => {
     const text = (result.content as Array<{ text: string }>)[0]?.text ?? "{}";
     const payload = JSON.parse(text);
     expect(payload.error.code).toBe("INSUFFICIENT_CREDITS");
+    await client.close();
+    await cleanup();
+  });
+});
+
+// Regression for the Glama "No tools" failure: a directory crawler launches the
+// server with NO credentials and calls tools/list. The server must boot and
+// advertise all tools anyway, then fail cleanly only when a tool is executed.
+describe("MCP server boots without an API key", () => {
+  it("still lists all 6 tools when started keyless", async () => {
+    const { client, cleanup } = await makeClientServerPair(null);
+    const tools = await client.listTools();
+    const names = new Set(tools.tools.map((t) => t.name));
+    for (const name of ["get_account", "list_jobs", "get_job", "submit_job", "cancel_job", "upload_file"]) {
+      expect(names.has(name)).toBe(true);
+    }
+    await client.close();
+    await cleanup();
+  });
+
+  it("returns a clear error (no network call) when a tool runs without a key", async () => {
+    const { client, cleanup } = await makeClientServerPair(null);
+    const result = await client.callTool({ name: "get_account", arguments: {} });
+    expect(result.isError).toBe(true);
+    const text = (result.content as Array<{ text: string }>)[0]?.text ?? "";
+    expect(text).toContain("RENDOBAR_API_KEY");
     await client.close();
     await cleanup();
   });

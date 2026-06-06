@@ -78,10 +78,19 @@ describe("parseConfig", () => {
     ).rejects.toThrow(ConfigError);
   });
 
-  it("throws ConfigError when no key in any source", async () => {
-    await expect(
-      parseConfig({ argv: [], env: {}, credsPath: "/no/such/file" }),
-    ).rejects.toThrow(ConfigError);
+  it("returns apiKey null when no key in any source (server boots keyless for tool listing)", async () => {
+    const cfg = await parseConfig({ argv: [], env: {}, credsPath: "/no/such/file" });
+    expect(cfg.apiKey).toBeNull();
+    expect(cfg.apiBase).toBe("https://api.rendobar.com");
+  });
+
+  it("treats an empty-string api key as no key (null), not an error", async () => {
+    const cfg = await parseConfig({
+      argv: [],
+      env: { RENDOBAR_API_KEY: "" },
+      credsPath: "/no/such/file",
+    });
+    expect(cfg.apiKey).toBeNull();
   });
 
   it("respects RENDOBAR_LOG_LEVEL env", async () => {
