@@ -174,12 +174,12 @@ const submitJobBaseDescription =
   `Rendobar runs the job on its own infrastructure and returns a hosted output URL.\n\n` +
   `FFmpeg inputs accept a URL string, { url }, { content } (inline text staged verbatim ` +
   `into the workdir, for subtitle files or ffmpeg concat lists), or { ref } (an ` +
-  `already-uploaded asset). The bare URL string and { url } are equivalent.`;
+  `already-uploaded asset, by its asset ID). The bare URL string and { url } are equivalent.`;
 
 // Polymorphic ffmpeg input source — mirrors inputSourceSchema in the API
 // (packages/shared/src/jobs/definitions/shared.ts) and the remote MCP tool. Each
 // value is a URL string, { url }, { content } (inline text staged into the
-// workdir), or { ref } (an already-uploaded asset). submitJob re-validates each
+// workdir), or { ref } (an already-uploaded asset, by its asset ID). submitJob re-validates each
 // source per job type, so this only needs to accept the four shapes.
 const inputSourceSchema = z.union([
   z.string(),
@@ -193,7 +193,7 @@ const submitJobInputSchema = {
   inputs: z
     .record(z.string(), inputSourceSchema)
     .describe(
-      "Map of input name to source. Each value is a URL string, { url }, { content } (inline text for subtitle files or ffmpeg concat lists), or { ref } (uploaded asset). For FFmpeg: keys match filenames in the command.",
+      "Map of input name to source. Each value is a URL string, { url }, { content } (inline text for subtitle files or ffmpeg concat lists), or { ref } (an uploaded asset's ID). For FFmpeg: keys match filenames in the command.",
     ),
   params: z
     .record(z.string(), z.unknown())
