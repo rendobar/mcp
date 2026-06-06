@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/rendobar/mcp/compare/v1.0.6...v1.1.0) (2026-06-06)
+
+
+### Features
+
+* align ffmpeg input sources and served output ([#26](https://github.com/rendobar/mcp/issues/26)) ([10a96cf](https://github.com/rendobar/mcp/commit/10a96cfe204d4aeefc8f40ebf0f34c93eb1f5153))
+
 ## [1.0.6](https://github.com/rendobar/mcp/compare/v1.0.5...v1.0.6) (2026-06-01)
 
 
