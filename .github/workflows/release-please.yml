@@ -19,12 +19,12 @@ jobs:
       # PAT (not GITHUB_TOKEN) on checkout so the tag pushed by "Tag released
       # version" triggers release.yml — tags pushed by GITHUB_TOKEN do NOT fire
       # downstream workflows. fetch-depth: 0 is needed for git tag + push.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
           token: ${{ secrets.ORG_AUTOMATION_PAT }}
 
-      - uses: googleapis/release-please-action@v4
+      - uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4
         id: release
         with:
           config-file: .github/release-please-config.json
