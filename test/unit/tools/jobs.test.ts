@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import { z } from "zod";
 import { jobTools } from "../../../src/tools/jobs.js";
 import type { RendobarContext } from "../../../src/context.js";
 
@@ -59,6 +60,42 @@ describe("list_jobs", () => {
     });
     expect(result.jobs[1]?.outputUrl).toBeUndefined();
     expect(result.total).toBe(2);
+  });
+
+  it("surfaces served output (url + fileCount) for multi-file complete jobs", async () => {
+    const sdk = {
+      jobs: {
+        list: vi.fn(async () => ({
+          data: [
+            {
+              id: "job_hls",
+              type: "ffmpeg",
+              status: "complete",
+              createdAt: 1714560000000,
+              priceFormatted: "$0.10",
+              outputUrl: null,
+              output: {
+                type: "stream",
+                url: "https://api.rendobar.com/v/job_hls/tok/index.m3u8",
+                fileCount: 6,
+              },
+            },
+          ],
+          meta: { total: 1, page: 1, limit: 10, pages: 1 },
+        })),
+      },
+    };
+    const c = ctx(sdk);
+    const tool = jobTools().find((t) => t.name === "list_jobs");
+    const result = (await tool!.execute({ limit: 10 }, c, {} as never)) as {
+      jobs: Record<string, unknown>[];
+    };
+    expect(result.jobs[0]?.outputUrl).toBeUndefined();
+    expect(result.jobs[0]?.output).toMatchObject({
+      type: "stream",
+      url: "https://api.rendobar.com/v/job_hls/tok/index.m3u8",
+      fileCount: 6,
+    });
   });
 
   it("passes filters through to SDK", async () => {
@@ -129,14 +166,15 @@ describe("get_job", () => {
     expect(result.step).toBe("execute");
   });
 
-  it("failed job exposes error", async () => {
+  it("failed job exposes error with ffmpeg errorDetail when present", async () => {
     const sdk = {
       jobs: {
         get: vi.fn(async () => ({
-          id: "job_x", orgId: "org_x", type: "raw.ffmpeg", status: "failed",
+          id: "job_x", orgId: "org_x", type: "ffmpeg", status: "failed",
           inputs: {}, params: {},
           outputRef: null, outputUrl: null, outputMeta: null,
           errorCode: "PROVIDER_ERROR", errorMessage: "Provider returned 500",
+          errorDetail: "Conversion failed!\n[libx264 @ 0x..] missing pps",
           price: null, priceFormatted: null, cost: null,
           createdAt: 1000, dispatchedAt: 1100, startedAt: 1200, completedAt: 2000,
           steps: [], outputCategory: "raw", mediaType: null,
@@ -147,7 +185,49 @@ describe("get_job", () => {
     const c = ctx({ jobs: sdk.jobs });
     const tool = jobTools().find((t) => t.name === "get_job");
     const result = await tool!.execute({ jobId: "job_x" }, c, {} as never) as Record<string, unknown>;
-    expect(result.error).toMatchObject({ code: "PROVIDER_ERROR", message: "Provider returned 500" });
+    expect(result.error).toMatchObject({
+      code: "PROVIDER_ERROR",
+      message: "Provider returned 500",
+      detail: "Conversion failed!\n[libx264 @ 0x..] missing pps",
+    });
+  });
+
+  it("served multi-file output surfaces url + fileCount instead of null outputUrl", async () => {
+    const sdk = {
+      jobs: {
+        get: vi.fn(async (id: string) => ({
+          id, orgId: "org_x", type: "ffmpeg", status: "complete",
+          inputs: {}, params: {},
+          outputRef: null, outputUrl: null,
+          // Served manifest persisted by the consumer for multi-file outputs.
+          outputMeta: { served: true, fileCount: 6 },
+          output: {
+            type: "stream",
+            url: "https://api.rendobar.com/v/job_hls/tok/index.m3u8",
+            playlist: "index.m3u8",
+            baseUrl: "https://api.rendobar.com/v/job_hls/tok/",
+            fileCount: 6,
+            manifestUrl: "https://api.rendobar.com/v/job_hls/tok/_manifest.json",
+          },
+          errorCode: null, errorMessage: null,
+          price: 100_000_000, priceFormatted: "$0.10", cost: { total: 0.1, currency: "USD" },
+          createdAt: 1000, dispatchedAt: 1100, startedAt: 1200, completedAt: 5000,
+          steps: [], outputCategory: "video", mediaType: "video/mp4",
+          logsAvailable: true, providerType: "trigger", providerRunId: "run_x", settledAt: 5100,
+        })),
+      },
+    };
+    const c = ctx({ jobs: sdk.jobs });
+    const tool = jobTools().find((t) => t.name === "get_job");
+    const result = await tool!.execute({ jobId: "job_hls" }, c, {} as never) as Record<string, unknown>;
+    expect(result.outputUrl).toBeUndefined();
+    expect(result.output).toMatchObject({
+      type: "stream",
+      url: "https://api.rendobar.com/v/job_hls/tok/index.m3u8",
+      playlist: "index.m3u8",
+      fileCount: 6,
+      manifestUrl: "https://api.rendobar.com/v/job_hls/tok/_manifest.json",
+    });
   });
 });
 
@@ -169,6 +249,51 @@ describe("submit_job", () => {
       type: "raw.ffmpeg",
       inputs: { source: "https://x/y.mp4" },
     }));
+  });
+
+  it("forwards polymorphic inputs (string | {url} | {content} | {ref}) verbatim", async () => {
+    const create = vi.fn(async () => ({ id: "job_poly", status: "waiting" as const }));
+    const c = ctx({ jobs: { create } });
+    const tool = jobTools().find((t) => t.name === "submit_job");
+    const inputs = {
+      "video.mp4": "https://x/y.mp4",
+      "clip.mp4": { url: "https://x/z.mp4" },
+      "subs.srt": { content: "1\n00:00:00,000 --> 00:00:01,000\nhi" },
+      "logo.png": { ref: "uploads/org_a/logo" },
+    };
+    await tool!.execute(
+      { type: "raw.ffmpeg", inputs, params: { command: "ffmpeg ..." } },
+      c, {} as never,
+    );
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ inputs }));
+  });
+});
+
+describe("submit_job inputs schema — polymorphic ffmpeg sources", () => {
+  const inputsSchema = (() => {
+    const tool = jobTools().find((t) => t.name === "submit_job");
+    if (!tool) throw new Error("submit_job tool not registered");
+    const inputs = tool.inputSchema.inputs;
+    if (!(inputs instanceof z.ZodType)) throw new Error("inputs schema missing");
+    return inputs;
+  })();
+
+  it("accepts URL string, {url}, {content}, {ref}, and a mixed map", () => {
+    expect(inputsSchema.safeParse({ a: "https://x/y.mp4" }).success).toBe(true);
+    expect(inputsSchema.safeParse({ a: { url: "https://x/y.mp4" } }).success).toBe(true);
+    expect(inputsSchema.safeParse({ a: { content: "file 'a.mp4'" } }).success).toBe(true);
+    expect(inputsSchema.safeParse({ a: { ref: "uploads/org/asset" } }).success).toBe(true);
+    expect(
+      inputsSchema.safeParse({
+        v: "https://x/y.mp4",
+        s: { content: "subs" },
+        l: { ref: "uploads/org/logo" },
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects an unsupported source shape", () => {
+    expect(inputsSchema.safeParse({ a: { urls: ["https://x/y.mp4"] } }).success).toBe(false);
   });
 });
 
