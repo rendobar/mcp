@@ -1,7 +1,9 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
   "name": "io.github.rendobar/mcp",
+  "title": "Rendobar",
   "description": "Rendobar — serverless media processing for AI agents",
+  "websiteUrl": "https://rendobar.com/docs/mcp/",
   "repository": {
     "url": "https://github.com/rendobar/mcp",
     "source": "github"
@@ -12,10 +14,19 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@rendobar/mcp",
-      "version": "1.0.5",
+      "version": "1.1.0",
       "transport": {
         "type": "stdio"
-      }
+      },
+      "environmentVariables": [
+        {
+          "name": "RENDOBAR_API_KEY",
+          "description": "Rendobar API key (starts with 'rb_'). Get one at https://app.rendobar.com/settings/api-keys. The server starts without it so tools can be listed, but tool calls require it.",
+          "isRequired": false,
+          "isSecret": true,
+          "format": "string"
+        }
+      ]
     }
   ]
 }
