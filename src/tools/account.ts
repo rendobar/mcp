@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { defineTool } from "./util.js";
+import { getSdk } from "../context.js";
 import type { ZodRawShape } from "zod";
 
 function formatBytes(n: number): string {
@@ -13,7 +14,12 @@ const getAccountTool = defineTool({
   name: "get_account",
   title: "Get Rendobar Account",
   description:
-    "Check credit balance, plan, and limits. Call before submitting expensive jobs to confirm the user can afford them.",
+    "Get the authenticated account's credit balance, plan, and limits. Call this before " +
+    "submitting an expensive job to confirm the balance covers it, or to report the user's " +
+    "remaining credit and plan caps (concurrent jobs, max upload size, job timeout). Takes no " +
+    "arguments. Read-only and idempotent — it never spends credit or changes anything. Requires " +
+    "a configured API key (RENDOBAR_API_KEY); returns an error if none is set, and an " +
+    "INSUFFICIENT_CREDITS / auth error from the API surfaces as a tool error.",
   inputSchema: {} as ZodRawShape,
   outputSchema: {
     balance: z.string(),
@@ -34,7 +40,7 @@ const getAccountTool = defineTool({
     openWorldHint: true,
   },
   execute: async (_args, ctx) => {
-    const state = await ctx.sdk.billing.state();
+    const state = await getSdk(ctx).billing.state();
 
     // Cache the max file size for upload_file's pre-stream gate.
     ctx.cachedMaxFileSize = state.plan.limits.maxInputFileSize;

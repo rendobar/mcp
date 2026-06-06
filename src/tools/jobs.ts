@@ -1,5 +1,6 @@
 import { z, type ZodRawShape } from "zod";
 import { defineTool, type ToolDef } from "./util.js";
+import { getSdk } from "../context.js";
 
 /**
  * The unified job-result shape returned by `GET /jobs/:id` (and the list endpoint)
@@ -87,14 +88,28 @@ const listJobsTool = defineTool({
   name: "list_jobs",
   title: "List Recent Rendobar Jobs",
   description:
-    "List recent jobs. Use to find previous results, check what's running, or re-reference past outputs.",
+    "List the most recent jobs for the authenticated account, newest first. Use it to find a " +
+    "previous result's output URL, check what is currently running, or recover a job ID you lost. " +
+    "Returns a compact summary per job (id, type, status, createdAt, cost, and a short output " +
+    "summary for completed jobs); call get_job for a job's full output. Optionally filter by " +
+    "status or job type. Read-only — never submits or changes a job. Requires a configured API " +
+    "key (RENDOBAR_API_KEY); errors if none is set.",
   inputSchema: {
     status: z
       .enum(["waiting", "dispatched", "running", "complete", "failed", "cancelled"])
       .optional()
-      .describe("Filter by status"),
-    type: z.string().optional().describe("Filter by job type (e.g. 'raw.ffmpeg')"),
-    limit: z.number().int().min(1).max(50).default(10).describe("Number of jobs to return"),
+      .describe("Only return jobs in this status. Omit to return all statuses."),
+    type: z
+      .string()
+      .optional()
+      .describe("Only return jobs of this type, e.g. 'raw.ffmpeg'. Omit to return all types."),
+    limit: z
+      .number()
+      .int()
+      .min(1)
+      .max(50)
+      .default(10)
+      .describe("How many jobs to return, newest first (1–50, default 10)."),
   },
   annotations: {
     readOnlyHint: true,
@@ -103,7 +118,7 @@ const listJobsTool = defineTool({
     openWorldHint: true,
   },
   execute: async (args, ctx) => {
-    const page = await ctx.sdk.jobs.list({
+    const page = await getSdk(ctx).jobs.list({
       status: args.status,
       type: args.type,
       limit: args.limit,
@@ -152,7 +167,7 @@ const getJobTool = defineTool({
     openWorldHint: true,
   },
   execute: async (args, ctx) => {
-    const job = await ctx.sdk.jobs.get(args.jobId);
+    const job = await getSdk(ctx).jobs.get(args.jobId);
     const shape = parseJobShape(job);
 
     const result: Record<string, unknown> = {
@@ -247,7 +262,7 @@ function buildSubmitJobTool(activeTypes: ReadonlyArray<{ type: string; summary: 
       openWorldHint: true,
     },
     execute: async (args, ctx) => {
-      const result = await ctx.sdk.jobs.create({
+      const result = await getSdk(ctx).jobs.create({
         type: args.type,
         inputs: args.inputs,
         params: args.params,
@@ -277,7 +292,7 @@ const cancelJobTool = defineTool({
     openWorldHint: true,
   },
   execute: async (args, ctx) => {
-    const job = await ctx.sdk.jobs.cancel(args.jobId);
+    const job = await getSdk(ctx).jobs.cancel(args.jobId);
     return { id: job.id, status: job.status };
   },
 });
@@ -311,12 +326,17 @@ export function jobTools(): readonly AnyToolDef[] {
 
 // Async factory used by registerTools at startup. Snapshots active job types
 // once. Description rebuild on registry change requires a server restart (rare).
-export async function jobToolsAsync(sdk: {
-  jobs: { types(): Promise<ReadonlyArray<{ type: string; summary: string }>> };
-}): Promise<readonly AnyToolDef[]> {
+// `sdk` is null when the server booted without an API key: we skip the network
+// fetch and register the tools with a generic description so they remain
+// listable (the key is enforced later, at execute time).
+export async function jobToolsAsync(
+  sdk: {
+    jobs: { types(): Promise<ReadonlyArray<{ type: string; summary: string }>> };
+  } | null,
+): Promise<readonly AnyToolDef[]> {
   let activeTypes: ReadonlyArray<{ type: string; summary: string }> = [];
   try {
-    activeTypes = await sdk.jobs.types();
+    if (sdk !== null) activeTypes = await sdk.jobs.types();
   } catch {
     // If the types fetch fails at startup, fall through to a generic description.
     // Tools still work — just the LLM-facing list of "active types" is empty.

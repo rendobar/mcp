@@ -137,6 +137,38 @@ env:
 | `cancel_job` | Cancel a waiting/dispatched job. |
 | `get_account` | Check balance, plan limits, active job count. |
 
+### Example
+
+A typical exchange once the server is configured in your client:
+
+> **You:** Mute the first 3 seconds of `~/clips/intro.mp4` and save it.
+
+The agent runs, in order:
+
+```jsonc
+// 1. Stage the local file → returns a hosted download URL
+upload_file { "path": "~/clips/intro.mp4" }
+// → { "downloadUrl": "https://cdn.rendobar.com/u/abc123/intro.mp4", "sizeBytes": 4821004 }
+
+// 2. Submit an FFmpeg job that references it
+submit_job {
+  "type": "raw.ffmpeg",
+  "inputs": { "intro.mp4": "https://cdn.rendobar.com/u/abc123/intro.mp4" },
+  "params": { "command": "-i intro.mp4 -af \"volume=enable='lt(t,3)':volume=0\" -c:v copy out.mp4" }
+}
+// → { "jobId": "job_9f2a", "status": "waiting" }
+
+// 3. Poll until done
+get_job { "jobId": "job_9f2a" }
+// → { "status": "complete", "cost": "$0.01", "output": { "file": { "url": "https://cdn.rendobar.com/o/job_9f2a/out.mp4", "type": "video" } } }
+```
+
+> **Agent:** Done — muted the first 3 seconds. Output: https://cdn.rendobar.com/o/job_9f2a/out.mp4
+
+The server advertises its tools even before an API key is configured, so clients
+and directories can list them; calls that need the API return a clear error until
+`RENDOBAR_API_KEY` is set.
+
 ## Local vs hosted MCP
 
 | | `@rendobar/mcp` (this package) | Hosted MCP (`api.rendobar.com`) |
@@ -171,6 +203,10 @@ Use `"command": "npx.cmd"` instead of `"command": "npx"` if your client doesn't 
 ### Server fails to start
 
 Check logs in your client's output panel. The server writes JSON lines to stderr. Look for entries with `level: "error"`.
+
+### Tools list but calls fail with "No Rendobar API key configured"
+
+Expected when no key is set — the server starts and advertises its tools so clients can list them, but tool calls need an API key. Set `RENDOBAR_API_KEY` (or `--api-key`, or run `rb login`). On startup without a key the server logs a `no_api_key` warning to stderr.
 
 ## Contributing
 

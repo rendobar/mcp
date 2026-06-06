@@ -8,7 +8,15 @@ export class ConfigError extends Error {
 }
 
 export interface ResolvedConfig {
-  apiKey: string;
+  /**
+   * `null` when no key was supplied via any source. The server still boots and
+   * advertises its tools, so hosts can introspect via `tools/list` before the
+   * user configures auth — e.g. directory crawlers like Glama that launch the
+   * server with no credentials, or an IDE that lists tools before prompting for
+   * secrets. The key is required only when a tool is executed; see `getSdk` in
+   * context.ts.
+   */
+  apiKey: string | null;
   apiBase: string;
   logLevel: "debug" | "info" | "warn" | "error";
 }
@@ -42,19 +50,14 @@ export async function parseConfig(opts: ParseConfigOptions): Promise<ResolvedCon
     // file missing or unparseable — silent fallback
   }
 
-  const apiKey = flagKey ?? opts.env.RENDOBAR_API_KEY ?? fileCreds.apiKey;
+  const rawKey = flagKey ?? opts.env.RENDOBAR_API_KEY ?? fileCreds.apiKey;
   const apiBase = flagBase ?? fileCreds.apiBase ?? DEFAULT_API_BASE;
 
-  if (apiKey === undefined || apiKey === "") {
-    throw new ConfigError(
-      `No Rendobar API key found. Provide one via:\n` +
-      `  1. --api-key=<key> command-line flag\n` +
-      `  2. RENDOBAR_API_KEY environment variable\n` +
-      `  3. credentials file at ${opts.credsPath} (written by 'rb login' from CLI v1.1+)\n\n` +
-      `Get an API key at https://app.rendobar.com/settings/api-keys`,
-    );
-  }
-  if (!apiKey.startsWith("rb_")) {
+  // A missing key is NOT an error: the server boots keyless so tools can be
+  // listed (tool execution then fails with a clear message — see getSdk). But a
+  // key that IS present and malformed is a real misconfiguration we surface now.
+  const apiKey = rawKey === undefined || rawKey === "" ? null : rawKey;
+  if (apiKey !== null && !apiKey.startsWith("rb_")) {
     throw new ConfigError(
       `Invalid Rendobar API key: must start with 'rb_' (got '${apiKey.slice(0, 4)}...').`,
     );

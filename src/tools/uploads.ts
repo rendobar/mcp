@@ -3,12 +3,13 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { defineTool, type ToolDef, type ToolExtra } from "./util.js";
 import { resolveSafe } from "../paths.js";
+import { getSdk } from "../context.js";
 import type { ZodRawShape } from "zod";
 import type { RendobarContext } from "../context.js";
 
 async function ensureCachedMaxFileSize(ctx: RendobarContext): Promise<number> {
   if (ctx.cachedMaxFileSize !== null) return ctx.cachedMaxFileSize;
-  const state = await ctx.sdk.billing.state();
+  const state = await getSdk(ctx).billing.state();
   ctx.cachedMaxFileSize = state.plan.limits.maxInputFileSize;
   return ctx.cachedMaxFileSize;
 }
@@ -70,7 +71,7 @@ const uploadFileTool = defineTool({
     const buffer = await fs.readFile(resolved);
     const blob = new Blob([buffer]);
 
-    const result = await ctx.sdk.uploads.upload(blob, {
+    const result = await getSdk(ctx).uploads.upload(blob, {
       filename: args.filename ?? path.basename(resolved),
       signal: extra.signal,
     });

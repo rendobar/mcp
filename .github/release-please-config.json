@@ -10,7 +10,10 @@
       "release-type": "node",
       "draft": false,
       "prerelease": false,
-      "extra-files": ["server.json"]
+      "extra-files": [
+        { "type": "json", "path": "server.json", "jsonpath": "$.version" },
+        { "type": "json", "path": "server.json", "jsonpath": "$.packages[0].version" }
+      ]
     }
   }
 }
