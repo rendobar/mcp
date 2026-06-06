@@ -2,36 +2,115 @@ import { z, type ZodRawShape } from "zod";
 import { defineTool, type ToolDef } from "./util.js";
 
 /**
- * Served multi-file output + ffmpeg error detail, parsed off the raw job response.
+ * The clean job-result shape returned by `GET /jobs/:id` (and the list endpoint).
  *
- * The API returns these for served (HLS/DASH, image-sequence, ladder) outputs and
- * failed ffmpeg jobs respectively, but `@rendobar/sdk`'s typed `JobResponse` does
- * not yet declare them. The SDK does not Zod-strip the response at runtime, so the
- * fields survive on the object; we parse them at this boundary (per type-safety.md)
- * instead of reaching for an `as` cast. Both fields are `.nullish()`, so older API
- * responses that omit them parse cleanly to `undefined` and the reshape falls back
- * to the single-file outputUrl / code+message path.
+ * `@rendobar/sdk`'s typed `JobResponse` still declares the legacy flat fields
+ * (outputUrl / outputMeta / errorCode / errorMessage / priceFormatted), but the
+ * live API now returns a discriminated `output` (on `kind`), a structured
+ * `error`, and a `cost` object. The SDK does not Zod-strip responses at runtime,
+ * so the new fields survive on the object. We parse them at this boundary (per
+ * type-safety.md) instead of reaching for an `as` cast; every field is optional
+ * so responses that omit one parse cleanly to `undefined`.
  */
-const ffmpegOutputExtrasSchema = z.object({
-  output: z
+const outputSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("file"),
+    url: z.string(),
+    poster: z.string().nullable().optional(),
+    meta: z
+      .object({
+        format: z.string().optional(),
+        width: z.number().optional(),
+        height: z.number().optional(),
+        durationMs: z.number().optional(),
+        sizeBytes: z.number().optional(),
+      })
+      .optional(),
+  }),
+  z.object({
+    kind: z.literal("stream"),
+    url: z.string(),
+    manifest: z.enum(["hls", "dash"]),
+    baseUrl: z.string(),
+    fileCount: z.number(),
+    manifestUrl: z.string(),
+  }),
+  z.object({
+    kind: z.literal("set"),
+    baseUrl: z.string(),
+    fileCount: z.number(),
+    manifestUrl: z.string(),
+  }),
+]);
+
+const jobShapeSchema = z.object({
+  output: outputSchema.nullish(),
+  error: z
     .object({
-      type: z.string(),
-      url: z.string().optional(),
-      playlist: z.string().optional(),
-      baseUrl: z.string().optional(),
-      fileCount: z.number().optional(),
-      manifestUrl: z.string().optional(),
+      code: z.string(),
+      message: z.string(),
+      detail: z.string().nullable(),
+      retryable: z.boolean(),
     })
     .nullish(),
-  errorDetail: z.string().nullish(),
+  cost: z
+    .object({
+      amount: z.number(),
+      currency: z.string(),
+      formatted: z.string(),
+    })
+    .nullable()
+    .optional(),
 });
 
-function parseFfmpegOutputExtras(job: unknown): {
-  output?: z.infer<typeof ffmpegOutputExtrasSchema>["output"];
-  errorDetail?: string | null;
-} {
-  const parsed = ffmpegOutputExtrasSchema.safeParse(job);
+type Output = z.infer<typeof outputSchema>;
+type ParsedJobShape = z.infer<typeof jobShapeSchema>;
+
+function parseJobShape(job: unknown): ParsedJobShape {
+  const parsed = jobShapeSchema.safeParse(job);
   return parsed.success ? parsed.data : {};
+}
+
+/**
+ * Reshape a discriminated `output` to the compact form agents read: file/stream
+ * surface the playable `url`; set surfaces the `baseUrl`. fileCount/manifestUrl
+ * ride along for multi-file collections so the agent can fetch every part.
+ */
+function reshapeOutput(output: Output): Record<string, unknown> {
+  switch (output.kind) {
+    case "file": {
+      const out: Record<string, unknown> = { kind: "file", url: output.url };
+      const meta = output.meta;
+      if (meta !== undefined) {
+        if (meta.format !== undefined) out.format = meta.format;
+        if (meta.width !== undefined && meta.height !== undefined) {
+          out.resolution = `${meta.width}x${meta.height}`;
+        }
+        if (meta.durationMs !== undefined) out.durationMs = meta.durationMs;
+        if (meta.sizeBytes !== undefined) out.sizeBytes = meta.sizeBytes;
+      }
+      return out;
+    }
+    case "stream":
+      return {
+        kind: "stream",
+        url: output.url,
+        manifest: output.manifest,
+        fileCount: output.fileCount,
+        manifestUrl: output.manifestUrl,
+      };
+    case "set":
+      return {
+        kind: "set",
+        baseUrl: output.baseUrl,
+        fileCount: output.fileCount,
+        manifestUrl: output.manifestUrl,
+      };
+    default: {
+      const _exhaustive: never = output;
+      throw new Error(`Unhandled output kind: ${JSON.stringify(_exhaustive)}`);
+    }
+  }
 }
 
 const listJobsTool = defineTool({
@@ -61,27 +140,17 @@ const listJobsTool = defineTool({
     });
     return {
       jobs: page.data.map((j) => {
+        const shape = parseJobShape(j);
         const entry: Record<string, unknown> = {
           id: j.id,
           type: j.type,
           status: j.status,
           createdAt: new Date(j.createdAt).toISOString(),
-          cost: j.priceFormatted,
+          cost: shape.cost?.formatted ?? null,
         };
-        if (j.status === "complete") {
-          if (j.outputUrl !== null) {
-            entry.outputUrl = j.outputUrl;
-          } else {
-            // Served (multi-file) output has no single outputUrl. Surface the primary
-            // url + fileCount so the list entry isn't blank. Mirrors the remote MCP.
-            const served = parseFfmpegOutputExtras(j).output;
-            if (served) {
-              const out: Record<string, unknown> = { type: served.type };
-              if (served.url !== undefined) out.url = served.url;
-              if (served.fileCount !== undefined) out.fileCount = served.fileCount;
-              entry.output = out;
-            }
-          }
+        if (j.status === "complete" && shape.output) {
+          // file/stream surface a playable url; set surfaces baseUrl + fileCount.
+          entry.output = reshapeOutput(shape.output);
         }
         return entry;
       }),
@@ -96,7 +165,7 @@ const getJobTool = defineTool({
   name: "get_job",
   title: "Get Rendobar Job",
   description:
-    "Check status and get results of a submitted job. Poll until status is 'complete' or 'failed'. Returns progress, current step, cost, and output when done. Single-file outputs return outputUrl; multi-file (served) outputs return an output object with a playable url and fileCount. Failed jobs include the ffmpeg error detail.",
+    "Check status and get results of a submitted job. Poll until status is 'complete' or 'failed'. Returns progress, current step, cost, and output when done. The output object is discriminated by `kind`: 'file' and 'stream' carry a playable `url`; 'set' carries a `baseUrl`, and multi-file outputs include `fileCount` + `manifestUrl`. Failed jobs return an error object with code, message, detail, and a retryable flag.",
   inputSchema: {
     jobId: z.string().describe("Job ID returned by submit_job (e.g. 'job_abc123')"),
   },
@@ -108,7 +177,7 @@ const getJobTool = defineTool({
   },
   execute: async (args, ctx) => {
     const job = await ctx.sdk.jobs.get(args.jobId);
-    const extras = parseFfmpegOutputExtras(job);
+    const shape = parseJobShape(job);
 
     const result: Record<string, unknown> = {
       id: job.id,
@@ -124,42 +193,19 @@ const getJobTool = defineTool({
     }
 
     if (job.status === "complete") {
-      if (job.priceFormatted !== null) result.cost = job.priceFormatted;
+      if (shape.cost) result.cost = shape.cost.formatted;
       if (job.completedAt !== null) result.durationMs = job.completedAt - job.createdAt;
-      if (job.outputUrl !== null) result.outputUrl = job.outputUrl;
-
-      // Served (multi-file) output: surface the playable url + fileCount so agents
-      // see the collection instead of just a null outputUrl. Mirrors the remote MCP.
-      if (extras.output) {
-        const served = extras.output;
-        const out: Record<string, unknown> = { type: served.type };
-        if (served.url !== undefined) out.url = served.url;
-        if (served.playlist !== undefined) out.playlist = served.playlist;
-        if (served.baseUrl !== undefined) out.baseUrl = served.baseUrl;
-        if (served.fileCount !== undefined) out.fileCount = served.fileCount;
-        if (served.manifestUrl !== undefined) out.manifestUrl = served.manifestUrl;
-        result.output = out;
-      } else if (job.outputMeta !== null) {
-        const meta = job.outputMeta;
-        const out: Record<string, unknown> = {};
-        if (typeof meta.format === "string") out.format = meta.format;
-        if (typeof meta.width === "number" && typeof meta.height === "number") {
-          out.resolution = `${meta.width}x${meta.height}`;
-        }
-        if (typeof meta.durationMs === "number") out.durationMs = meta.durationMs;
-        if (typeof meta.fileSize === "number") out.fileSizeBytes = meta.fileSize;
-        if (Object.keys(out).length > 0) result.output = out;
-      }
+      // Discriminated output: file/stream → url, set → baseUrl. See reshapeOutput.
+      if (shape.output) result.output = reshapeOutput(shape.output);
     }
 
-    if (job.status === "failed") {
-      const error: Record<string, unknown> = {
-        code: job.errorCode ?? "UNKNOWN",
-        message: job.errorMessage ?? "Job failed with no error details.",
+    if (job.status === "failed" && shape.error) {
+      result.error = {
+        code: shape.error.code,
+        message: shape.error.message,
+        detail: shape.error.detail,
+        retryable: shape.error.retryable,
       };
-      // errorDetail is the real ffmpeg stderr tail; surface it so agents can diagnose.
-      if (typeof extras.errorDetail === "string") error.detail = extras.errorDetail;
-      result.error = error;
     }
 
     return result;

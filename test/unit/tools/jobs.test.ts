@@ -19,7 +19,7 @@ const ctx = (sdk: Record<string, unknown>): RendobarContext => ({
 });
 
 describe("list_jobs", () => {
-  it("returns jobs with outputUrl on complete only", async () => {
+  it("surfaces file output url + cost on complete; null cost and no output otherwise", async () => {
     const sdk = {
       jobs: {
         list: vi.fn(async () => ({
@@ -29,16 +29,20 @@ describe("list_jobs", () => {
               type: "raw.ffmpeg",
               status: "complete",
               createdAt: 1714560000000,
-              priceFormatted: "$0.10",
-              outputUrl: "https://cdn.rendobar.com/job_1/output.mp4",
+              cost: { amount: 100_000_000, currency: "USD", formatted: "$0.10" },
+              output: {
+                kind: "file",
+                url: "https://cdn.rendobar.com/job_1/output.mp4",
+                poster: null,
+                meta: {},
+              },
             },
             {
               id: "job_2",
               type: "raw.ffmpeg",
               status: "failed",
               createdAt: 1714560100000,
-              priceFormatted: null,
-              outputUrl: null,
+              cost: null,
             },
           ],
           meta: { total: 2, page: 1, limit: 10, pages: 1 },
@@ -56,13 +60,14 @@ describe("list_jobs", () => {
       id: "job_1",
       status: "complete",
       cost: "$0.10",
-      outputUrl: "https://cdn.rendobar.com/job_1/output.mp4",
+      output: { kind: "file", url: "https://cdn.rendobar.com/job_1/output.mp4" },
     });
-    expect(result.jobs[1]?.outputUrl).toBeUndefined();
+    expect(result.jobs[1]?.output).toBeUndefined();
+    expect(result.jobs[1]?.cost).toBeNull();
     expect(result.total).toBe(2);
   });
 
-  it("surfaces served output (url + fileCount) for multi-file complete jobs", async () => {
+  it("surfaces stream output (url + fileCount) for multi-file complete jobs", async () => {
     const sdk = {
       jobs: {
         list: vi.fn(async () => ({
@@ -72,12 +77,14 @@ describe("list_jobs", () => {
               type: "ffmpeg",
               status: "complete",
               createdAt: 1714560000000,
-              priceFormatted: "$0.10",
-              outputUrl: null,
+              cost: { amount: 100_000_000, currency: "USD", formatted: "$0.10" },
               output: {
-                type: "stream",
+                kind: "stream",
                 url: "https://api.rendobar.com/v/job_hls/tok/index.m3u8",
+                manifest: "hls",
+                baseUrl: "https://api.rendobar.com/v/job_hls/tok/",
                 fileCount: 6,
+                manifestUrl: "https://api.rendobar.com/v/job_hls/tok/_manifest.json",
               },
             },
           ],
@@ -90,9 +97,8 @@ describe("list_jobs", () => {
     const result = (await tool!.execute({ limit: 10 }, c, {} as never)) as {
       jobs: Record<string, unknown>[];
     };
-    expect(result.jobs[0]?.outputUrl).toBeUndefined();
     expect(result.jobs[0]?.output).toMatchObject({
-      type: "stream",
+      kind: "stream",
       url: "https://api.rendobar.com/v/job_hls/tok/index.m3u8",
       fileCount: 6,
     });
@@ -108,21 +114,23 @@ describe("list_jobs", () => {
 });
 
 describe("get_job", () => {
-  it("complete job returns reshaped output with cost, durationMs, outputUrl, output meta", async () => {
+  it("complete file job returns reshaped output with cost, durationMs, url + meta", async () => {
     const sdk = {
       jobs: {
         get: vi.fn(async (id: string) => ({
           id, orgId: "org_x", type: "raw.ffmpeg", status: "complete",
           inputs: {}, params: {},
-          outputRef: `jobs/${id}/output.mp4`,
-          outputUrl: `https://cdn.rendobar.com/${id}/output.mp4`,
-          outputMeta: { format: "mp4", width: 1920, height: 1080, durationMs: 60000, fileSize: 5_000_000 },
-          errorCode: null, errorMessage: null,
-          price: 200_000_000, priceFormatted: "$0.20",
-          cost: { total: 0.2, currency: "USD" },
+          output: {
+            kind: "file",
+            url: `https://cdn.rendobar.com/${id}/output.mp4`,
+            expiresAt: 9000,
+            poster: null,
+            meta: { format: "mp4", width: 1920, height: 1080, durationMs: 60000, sizeBytes: 5_000_000 },
+          },
+          cost: { amount: 200_000_000, currency: "USD", formatted: "$0.20" },
           createdAt: 1000, dispatchedAt: 1100, startedAt: 1200, completedAt: 5000,
           steps: [], outputCategory: "video", mediaType: "video/mp4",
-          logsAvailable: true, providerType: "trigger", providerRunId: "run_x", settledAt: 5100,
+          logsAvailable: true, settledAt: 5100,
         })),
       },
     };
@@ -135,8 +143,14 @@ describe("get_job", () => {
       status: "complete",
       cost: "$0.20",
       durationMs: 4000,
-      outputUrl: "https://cdn.rendobar.com/job_abc/output.mp4",
-      output: { format: "mp4", resolution: "1920x1080", durationMs: 60000, fileSizeBytes: 5_000_000 },
+      output: {
+        kind: "file",
+        url: "https://cdn.rendobar.com/job_abc/output.mp4",
+        format: "mp4",
+        resolution: "1920x1080",
+        durationMs: 60000,
+        sizeBytes: 5_000_000,
+      },
     });
   });
 
@@ -146,8 +160,7 @@ describe("get_job", () => {
         get: vi.fn(async () => ({
           id: "job_x", orgId: "org_x", type: "raw.ffmpeg", status: "running",
           inputs: {}, params: {},
-          outputRef: null, outputUrl: null, outputMeta: null,
-          errorCode: null, errorMessage: null, price: null, priceFormatted: null, cost: null,
+          cost: null,
           createdAt: 1000, dispatchedAt: 1100, startedAt: 1200, completedAt: null,
           steps: [
             { id: "s1", name: "download", status: "complete" },
@@ -155,7 +168,7 @@ describe("get_job", () => {
             { id: "s3", name: "upload", status: "pending" },
           ],
           outputCategory: "video", mediaType: null,
-          logsAvailable: true, providerType: "trigger", providerRunId: "run_x", settledAt: null,
+          logsAvailable: true, settledAt: null,
         })),
       },
     };
@@ -166,19 +179,22 @@ describe("get_job", () => {
     expect(result.step).toBe("execute");
   });
 
-  it("failed job exposes error with ffmpeg errorDetail when present", async () => {
+  it("failed job exposes error with code, message, detail, retryable", async () => {
     const sdk = {
       jobs: {
         get: vi.fn(async () => ({
           id: "job_x", orgId: "org_x", type: "ffmpeg", status: "failed",
           inputs: {}, params: {},
-          outputRef: null, outputUrl: null, outputMeta: null,
-          errorCode: "PROVIDER_ERROR", errorMessage: "Provider returned 500",
-          errorDetail: "Conversion failed!\n[libx264 @ 0x..] missing pps",
-          price: null, priceFormatted: null, cost: null,
+          error: {
+            code: "PROVIDER_ERROR",
+            message: "Provider returned 500",
+            detail: "Conversion failed!\n[libx264 @ 0x..] missing pps",
+            retryable: true,
+          },
+          cost: null,
           createdAt: 1000, dispatchedAt: 1100, startedAt: 1200, completedAt: 2000,
           steps: [], outputCategory: "raw", mediaType: null,
-          logsAvailable: false, providerType: "trigger", providerRunId: null, settledAt: 2100,
+          logsAvailable: false, settledAt: 2100,
         })),
       },
     };
@@ -189,45 +205,76 @@ describe("get_job", () => {
       code: "PROVIDER_ERROR",
       message: "Provider returned 500",
       detail: "Conversion failed!\n[libx264 @ 0x..] missing pps",
+      retryable: true,
     });
   });
 
-  it("served multi-file output surfaces url + fileCount instead of null outputUrl", async () => {
+  it("stream output surfaces url + fileCount + manifestUrl", async () => {
     const sdk = {
       jobs: {
         get: vi.fn(async (id: string) => ({
           id, orgId: "org_x", type: "ffmpeg", status: "complete",
           inputs: {}, params: {},
-          outputRef: null, outputUrl: null,
-          // Served manifest persisted by the consumer for multi-file outputs.
-          outputMeta: { served: true, fileCount: 6 },
           output: {
-            type: "stream",
+            kind: "stream",
             url: "https://api.rendobar.com/v/job_hls/tok/index.m3u8",
-            playlist: "index.m3u8",
+            manifest: "hls",
             baseUrl: "https://api.rendobar.com/v/job_hls/tok/",
+            expiresAt: 9000,
             fileCount: 6,
+            files: [{ path: "index.m3u8", url: "https://api.rendobar.com/v/job_hls/tok/index.m3u8", size: 200 }],
             manifestUrl: "https://api.rendobar.com/v/job_hls/tok/_manifest.json",
           },
-          errorCode: null, errorMessage: null,
-          price: 100_000_000, priceFormatted: "$0.10", cost: { total: 0.1, currency: "USD" },
+          cost: { amount: 100_000_000, currency: "USD", formatted: "$0.10" },
           createdAt: 1000, dispatchedAt: 1100, startedAt: 1200, completedAt: 5000,
           steps: [], outputCategory: "video", mediaType: "video/mp4",
-          logsAvailable: true, providerType: "trigger", providerRunId: "run_x", settledAt: 5100,
+          logsAvailable: true, settledAt: 5100,
         })),
       },
     };
     const c = ctx({ jobs: sdk.jobs });
     const tool = jobTools().find((t) => t.name === "get_job");
     const result = await tool!.execute({ jobId: "job_hls" }, c, {} as never) as Record<string, unknown>;
-    expect(result.outputUrl).toBeUndefined();
     expect(result.output).toMatchObject({
-      type: "stream",
+      kind: "stream",
       url: "https://api.rendobar.com/v/job_hls/tok/index.m3u8",
-      playlist: "index.m3u8",
+      manifest: "hls",
       fileCount: 6,
       manifestUrl: "https://api.rendobar.com/v/job_hls/tok/_manifest.json",
     });
+  });
+
+  it("set output surfaces baseUrl + fileCount instead of a url", async () => {
+    const sdk = {
+      jobs: {
+        get: vi.fn(async (id: string) => ({
+          id, orgId: "org_x", type: "ffmpeg", status: "complete",
+          inputs: {}, params: {},
+          output: {
+            kind: "set",
+            baseUrl: "https://api.rendobar.com/v/job_set/tok/",
+            expiresAt: 9000,
+            fileCount: 12,
+            files: [{ path: "frame_0001.png", url: "https://api.rendobar.com/v/job_set/tok/frame_0001.png", size: 5000 }],
+            manifestUrl: "https://api.rendobar.com/v/job_set/tok/_manifest.json",
+          },
+          cost: { amount: 100_000_000, currency: "USD", formatted: "$0.10" },
+          createdAt: 1000, dispatchedAt: 1100, startedAt: 1200, completedAt: 5000,
+          steps: [], outputCategory: "image", mediaType: "image/png",
+          logsAvailable: true, settledAt: 5100,
+        })),
+      },
+    };
+    const c = ctx({ jobs: sdk.jobs });
+    const tool = jobTools().find((t) => t.name === "get_job");
+    const result = await tool!.execute({ jobId: "job_set" }, c, {} as never) as Record<string, unknown>;
+    expect(result.output).toMatchObject({
+      kind: "set",
+      baseUrl: "https://api.rendobar.com/v/job_set/tok/",
+      fileCount: 12,
+      manifestUrl: "https://api.rendobar.com/v/job_set/tok/_manifest.json",
+    });
+    expect((result.output as Record<string, unknown>).url).toBeUndefined();
   });
 });
 
@@ -304,12 +351,10 @@ describe("cancel_job", () => {
         cancel: vi.fn(async (id: string) => ({
           id, orgId: "org_x", type: "raw.ffmpeg", status: "cancelled",
           inputs: {}, params: {},
-          outputRef: null, outputUrl: null, outputMeta: null,
-          errorCode: null, errorMessage: null,
-          price: null, priceFormatted: null, cost: null,
+          cost: null,
           createdAt: 1000, dispatchedAt: null, startedAt: null, completedAt: 2000,
           steps: [], outputCategory: "raw", mediaType: null,
-          logsAvailable: false, providerType: null, providerRunId: null, settledAt: 2100,
+          logsAvailable: false, settledAt: 2100,
         })),
       },
     };
