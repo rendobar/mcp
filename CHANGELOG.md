@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/rendobar/mcp/compare/v1.1.0...v1.2.0) (2026-06-06)
+
+
+### Features
+
+* boot without an API key + Glama listing fixes ([#28](https://github.com/rendobar/mcp/issues/28)) ([6fcf70c](https://github.com/rendobar/mcp/commit/6fcf70c5e9df363c0001f50d08bb6ab68a55c5a3))
+
 ## [1.1.0](https://github.com/rendobar/mcp/compare/v1.0.6...v1.1.0) (2026-06-06)
 
 
