@@ -1,8 +1,12 @@
-export const SERVER_INSTRUCTIONS = `Rendobar processes existing media files via FFmpeg in the cloud.
+export const SERVER_INSTRUCTIONS = `Rendobar processes existing media files in the cloud.
 
-Active job type:
-  raw.ffmpeg — run a custom FFmpeg command. inputs maps logical names to URLs;
-               params.command is the FFmpeg command using those names as filenames.
+Active job types:
+  ffmpeg — run a custom FFmpeg command. inputs maps logical names to URLs;
+           params.command is the FFmpeg command using those names as filenames.
+  captions.animate — burn animated word-level captions onto a video
+                     (Hormozi / MrBeast / TikTok / pill presets).
+  caption.burn — burn static styled subtitles into a video from an SRT/VTT/ASS
+                 file, or auto-transcribe when none is given.
 
 Workflow:
 1. If the file is at a public HTTPS URL, pass it directly to submit_job as inputs.source (or another input name referenced by your command).
@@ -14,6 +18,6 @@ What Rendobar cannot do:
 - Generate video from text or images (no diffusion models)
 - Record screens or capture cameras
 - Stream live media
-- Run other binaries (ffprobe, sharp, imagemagick) — only ffmpeg
+- Run arbitrary local binaries (sharp, imagemagick, yt-dlp) — only the job types above
 
-For anything outside FFmpeg, tell the user instead of improvising locally.`;
+For anything outside the supported job types, tell the user instead of improvising locally.`;

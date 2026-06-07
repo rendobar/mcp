@@ -102,7 +102,7 @@ const listJobsTool = defineTool({
     type: z
       .string()
       .optional()
-      .describe("Only return jobs of this type, e.g. 'raw.ffmpeg'. Omit to return all types."),
+      .describe("Only return jobs of this type, e.g. 'ffmpeg'. Omit to return all types."),
     limit: z
       .number()
       .int()
@@ -226,7 +226,7 @@ const inputSourceSchema = z.union([
 ]);
 
 const submitJobInputSchema = {
-  type: z.string().describe("Job type from registry. Use 'raw.ffmpeg' for custom FFmpeg commands."),
+  type: z.string().describe("Job type from registry. Use 'ffmpeg' for custom FFmpeg commands."),
   inputs: z
     .record(z.string(), inputSourceSchema)
     .describe(
@@ -235,18 +235,39 @@ const submitJobInputSchema = {
   params: z
     .record(z.string(), z.unknown())
     .optional()
-    .describe("Type-specific parameters. For raw.ffmpeg: { command: '...' }"),
+    .describe("Type-specific parameters. For ffmpeg: { command: '...' }"),
   idempotencyKey: z
     .string()
     .optional()
     .describe("Prevents duplicate jobs on retry. Unique value per logical operation."),
 };
 
+// Keyless fallback. The server can boot without an API key (directory indexers
+// like Glama launch it to read tools/list, and the live registry fetch needs a
+// key), so we always advertise the currently featured job types. When a key IS
+// present, sdk.jobs.types() overrides this with the live registry. Keep this set
+// in sync with the featured job types on https://rendobar.com/llms.txt.
+const FEATURED_JOB_TYPES: ReadonlyArray<{ type: string; summary: string }> = [
+  {
+    type: "ffmpeg",
+    summary:
+      "Run any FFmpeg command on hosted infrastructure (transcode, trim, mux, filter, concat).",
+  },
+  {
+    type: "captions.animate",
+    summary:
+      "Burn animated word-level captions onto a video (Hormozi / MrBeast / TikTok / pill presets).",
+  },
+  {
+    type: "caption.burn",
+    summary:
+      "Burn static styled subtitles into a video from an SRT/VTT/ASS file, or auto-transcribe when none is given.",
+  },
+];
+
 function buildSubmitJobTool(activeTypes: ReadonlyArray<{ type: string; summary: string }>) {
-  const typesText =
-    activeTypes.length > 0
-      ? `\n\nActive job types:\n${activeTypes.map((t) => `  ${t.type} — ${t.summary}`).join("\n")}`
-      : "";
+  const types = activeTypes.length > 0 ? activeTypes : FEATURED_JOB_TYPES;
+  const typesText = `\n\nActive job types:\n${types.map((t) => `  ${t.type} — ${t.summary}`).join("\n")}`;
   return defineTool({
     name: "submit_job",
     title: "Submit Rendobar Job",

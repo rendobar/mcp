@@ -40,45 +40,53 @@ const uploadFileTool = defineTool({
     // 1. Resolve path safely.
     const resolved = await resolveSafe(args.path, { cwd: process.cwd() });
 
-    // 2. Stat — must be a regular file with size we can check.
-    const stat = await fs.stat(resolved);
-    if (!stat.isFile()) {
-      throw new Error(`Path is not a regular file: ${path.basename(resolved)}`);
+    // 2. Open the file once and operate on the handle. Statting by path and then
+    //    re-reading by path opens a TOCTOU window (the path could be swapped for
+    //    a symlink between the two calls). A single FileHandle for both stat and
+    //    read closes that window.
+    const fh = await fs.open(resolved, "r");
+    try {
+      const stat = await fh.stat();
+      if (!stat.isFile()) {
+        throw new Error(`Path is not a regular file: ${path.basename(resolved)}`);
+      }
+      const sizeBytes = stat.size;
+
+      // 3. Pre-stream size gate. Lazily fetch the limit if cold.
+      const maxFileSize = await ensureCachedMaxFileSize(ctx);
+      if (sizeBytes > maxFileSize) {
+        throw new Error(
+          `File size (${sizeBytes} bytes) exceeds plan limit (${maxFileSize} bytes). ` +
+            `Upgrade your plan for larger uploads.`,
+        );
+      }
+
+      ctx.logger.debug({ msg: "upload_start", basename: path.basename(resolved), sizeBytes });
+
+      // 4. Read into memory and upload as a Blob.
+      //
+      // Streaming via Readable.toWeb(...) hit "RequestInit: duplex option is required
+      // when sending a body" because Node's fetch requires duplex:'half' for stream
+      // bodies and the SDK request layer doesn't set it. Buffering avoids that
+      // entirely — Blob is a fully-buffered BodyInit and works everywhere.
+      //
+      // Memory bound: maxInputFileSize (free=100MB, pro=2GB) — same ceiling the
+      // pre-stream gate enforces. v2 candidate: patch SDK to set duplex, then
+      // restore streaming + ProgressTransform for files >5MB.
+      const buffer = await fh.readFile();
+      const blob = new Blob([buffer]);
+
+      const result = await getSdk(ctx).uploads.upload(blob, {
+        filename: args.filename ?? path.basename(resolved),
+        signal: extra.signal,
+      });
+
+      ctx.logger.info({ msg: "upload_complete", basename: path.basename(resolved), sizeBytes });
+
+      return { downloadUrl: result.downloadUrl, sizeBytes };
+    } finally {
+      await fh.close();
     }
-    const sizeBytes = stat.size;
-
-    // 3. Pre-stream size gate. Lazily fetch the limit if cold.
-    const maxFileSize = await ensureCachedMaxFileSize(ctx);
-    if (sizeBytes > maxFileSize) {
-      throw new Error(
-        `File size (${sizeBytes} bytes) exceeds plan limit (${maxFileSize} bytes). ` +
-          `Upgrade your plan for larger uploads.`,
-      );
-    }
-
-    ctx.logger.debug({ msg: "upload_start", basename: path.basename(resolved), sizeBytes });
-
-    // 4. Read into memory and upload as a Blob.
-    //
-    // Streaming via Readable.toWeb(...) hit "RequestInit: duplex option is required
-    // when sending a body" because Node's fetch requires duplex:'half' for stream
-    // bodies and the SDK request layer doesn't set it. Buffering avoids that
-    // entirely — Blob is a fully-buffered BodyInit and works everywhere.
-    //
-    // Memory bound: maxInputFileSize (free=100MB, pro=2GB) — same ceiling the
-    // pre-stream gate enforces. v2 candidate: patch SDK to set duplex, then
-    // restore streaming + ProgressTransform for files >5MB.
-    const buffer = await fs.readFile(resolved);
-    const blob = new Blob([buffer]);
-
-    const result = await getSdk(ctx).uploads.upload(blob, {
-      filename: args.filename ?? path.basename(resolved),
-      signal: extra.signal,
-    });
-
-    ctx.logger.info({ msg: "upload_complete", basename: path.basename(resolved), sizeBytes });
-
-    return { downloadUrl: result.downloadUrl, sizeBytes };
   },
 });
 
