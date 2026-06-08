@@ -26,6 +26,7 @@
   <a href="https://www.npmjs.com/package/@rendobar/mcp"><img src="https://img.shields.io/npm/dm/@rendobar/mcp?style=flat-square&color=059669" alt="npm downloads"></a>
   <img src="https://img.shields.io/npm/l/@rendobar/mcp?style=flat-square&color=059669" alt="MIT license">
   <img src="https://img.shields.io/node/v/@rendobar/mcp?style=flat-square&color=059669" alt="Node version">
+  <a href="https://glama.ai/mcp/servers/kwdj3f0u3z"><img src="https://glama.ai/mcp/servers/kwdj3f0u3z/badge" alt="Glama quality" height="20"></a>
 </p>
 
 ---
