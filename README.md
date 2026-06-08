@@ -20,16 +20,18 @@
   <a href="https://www.npmjs.com/package/@rendobar/mcp">npm</a> &nbsp;·&nbsp;
   <a href="https://discord.gg/kAGqjBzx8N">Discord</a>
 </p>
-
+      <p align="center">
+       <a href="https://glama.ai/mcp/servers/kwdj3f0u3z">
+        <img src="https://glama.ai/mcp/servers/kwdj3f0u3z/badge" alt="Rendobar MCP server on Glama" width="380">
+      </a>
+      </p>
 <p align="center">
   <a href="https://www.npmjs.com/package/@rendobar/mcp"><img src="https://img.shields.io/npm/v/@rendobar/mcp?style=flat-square&color=059669&label=npm" alt="npm version"></a>
   <a href="https://www.npmjs.com/package/@rendobar/mcp"><img src="https://img.shields.io/npm/dm/@rendobar/mcp?style=flat-square&color=059669" alt="npm downloads"></a>
   <img src="https://img.shields.io/npm/l/@rendobar/mcp?style=flat-square&color=059669" alt="MIT license">
   <img src="https://img.shields.io/node/v/@rendobar/mcp?style=flat-square&color=059669" alt="Node version">
-  <a href="https://glama.ai/mcp/servers/kwdj3f0u3z"><img src="https://glama.ai/mcp/servers/kwdj3f0u3z/badge" alt="Glama quality" height="20"></a>
 </p>
 
----
 
 `@rendobar/mcp` is the official Model Context Protocol server for [Rendobar](https://rendobar.com). It lets AI agents in Claude Desktop, Cursor, Cline, Windsurf, Zed, VS Code, Claude Code, and Continue submit Rendobar jobs and upload local files in a single tool call.
 
