@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/rendobar/mcp/compare/v1.2.0...v1.2.1) (2026-06-08)
+
+
+### Bug Fixes
+
+* align advertised job types and resolve CodeQL alerts ([#39](https://github.com/rendobar/mcp/issues/39)) ([62dac73](https://github.com/rendobar/mcp/commit/62dac73030529e75f9c75097cc7cdd260edc171c))
+
 ## [1.2.0](https://github.com/rendobar/mcp/compare/v1.1.0...v1.2.0) (2026-06-06)
 
 
