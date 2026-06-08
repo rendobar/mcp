@@ -26,6 +26,7 @@
   <a href="https://www.npmjs.com/package/@rendobar/mcp"><img src="https://img.shields.io/npm/dm/@rendobar/mcp?style=flat-square&color=059669" alt="npm downloads"></a>
   <img src="https://img.shields.io/npm/l/@rendobar/mcp?style=flat-square&color=059669" alt="MIT license">
   <img src="https://img.shields.io/node/v/@rendobar/mcp?style=flat-square&color=059669" alt="Node version">
+  <a href="https://glama.ai/mcp/servers/kwdj3f0u3z"><img src="https://glama.ai/mcp/servers/kwdj3f0u3z/badge" alt="Glama quality" height="20"></a>
 </p>
 
 ---
@@ -131,11 +132,21 @@ env:
 | Tool | Purpose |
 |---|---|
 | `upload_file` | Upload a local file. Returns a download URL to use in `submit_job`. |
-| `submit_job` | Submit any Rendobar job. Description lists active job types. |
+| `submit_job` | Submit any Rendobar job. Its description lists the active job types. |
 | `get_job` | Poll job status, fetch result. |
 | `list_jobs` | List recent jobs. |
 | `cancel_job` | Cancel a waiting/dispatched job. |
 | `get_account` | Check balance, plan limits, active job count. |
+
+### Job types
+
+`submit_job` takes a `type`. The active types:
+
+| `type` | What it does |
+|---|---|
+| `ffmpeg` | Run any FFmpeg command (transcode, trim, mux, filter, concat). |
+| `captions.animate` | Burn animated word-level captions onto a video (Hormozi / MrBeast / TikTok / pill presets). |
+| `caption.burn` | Burn static styled subtitles from an SRT/VTT/ASS file, or auto-transcribe when none is given. |
 
 ### Example
 
@@ -152,7 +163,7 @@ upload_file { "path": "~/clips/intro.mp4" }
 
 // 2. Submit an FFmpeg job that references it
 submit_job {
-  "type": "raw.ffmpeg",
+  "type": "ffmpeg",
   "inputs": { "intro.mp4": "https://cdn.rendobar.com/u/abc123/intro.mp4" },
   "params": { "command": "-i intro.mp4 -af \"volume=enable='lt(t,3)':volume=0\" -c:v copy out.mp4" }
 }
@@ -164,6 +175,17 @@ get_job { "jobId": "job_9f2a" }
 ```
 
 > **Agent:** Done — muted the first 3 seconds. Output: https://cdn.rendobar.com/o/job_9f2a/out.mp4
+
+Auto-caption a clip with animated word-level captions — no subtitle file needed:
+
+```jsonc
+submit_job {
+  "type": "captions.animate",
+  "inputs": { "clip.mp4": "https://cdn.rendobar.com/u/abc123/clip.mp4" },
+  "params": { "preset": "hormozi" }
+}
+// → { "jobId": "job_7c1b", "status": "waiting" }
+```
 
 The server advertises its tools even before an API key is configured, so clients
 and directories can list them; calls that need the API return a clear error until
