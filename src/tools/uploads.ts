@@ -70,20 +70,22 @@ const uploadFileTool = defineTool({
       // bodies and the SDK request layer doesn't set it. Buffering avoids that
       // entirely — Blob is a fully-buffered BodyInit and works everywhere.
       //
-      // Memory bound: maxInputFileSize (free=100MB, pro=2GB) — same ceiling the
+      // Memory bound: maxInputFileSize (free=500MB, pro=10GB) — same ceiling the
       // pre-stream gate enforces. v2 candidate: patch SDK to set duplex, then
       // restore streaming + ProgressTransform for files >5MB.
       const buffer = await fh.readFile();
       const blob = new Blob([buffer]);
 
-      const result = await getSdk(ctx).uploads.upload(blob, {
+      // SDK 3.0.0: uploads.create() presigns + uploads + finalizes in one call
+      // and returns the ready asset; reference it by its stable content URL.
+      const asset = await getSdk(ctx).uploads.create(blob, {
         filename: args.filename ?? path.basename(resolved),
         signal: extra.signal,
       });
 
       ctx.logger.info({ msg: "upload_complete", basename: path.basename(resolved), sizeBytes });
 
-      return { downloadUrl: result.downloadUrl, sizeBytes };
+      return { downloadUrl: asset.url, sizeBytes };
     } finally {
       await fh.close();
     }
