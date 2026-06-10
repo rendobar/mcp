@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.2](https://github.com/rendobar/mcp/compare/v1.2.1...v1.2.2) (2026-06-10)
+
+
+### Bug Fixes
+
+* adopt @rendobar/sdk v3 upload API ([#41](https://github.com/rendobar/mcp/issues/41)) ([e5e3d38](https://github.com/rendobar/mcp/commit/e5e3d38493ea0f84fe7324bca0c7c5530698a489))
+
 ## [1.2.1](https://github.com/rendobar/mcp/compare/v1.2.0...v1.2.1) (2026-06-08)
 
 
