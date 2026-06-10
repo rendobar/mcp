@@ -57,9 +57,9 @@ describe("upload_file", () => {
   });
 
   it("uploads a small file and returns downloadUrl + sizeBytes", async () => {
-    const upload = vi.fn(async () => ({ downloadUrl: "https://api.rendobar.com/uploads/dl/abc" }));
+    const create = vi.fn(async () => ({ url: "https://api.rendobar.com/uploads/dl/abc" }));
     const sdk = {
-      uploads: { upload },
+      uploads: { create },
       billing: { state: vi.fn(async () => billingState(999_999_999)) },
     };
     const c = ctx({ sdk: sdk as never });
@@ -75,13 +75,13 @@ describe("upload_file", () => {
       downloadUrl: "https://api.rendobar.com/uploads/dl/abc",
       sizeBytes: 11, // "hello world"
     });
-    expect(upload).toHaveBeenCalledOnce();
+    expect(create).toHaveBeenCalledOnce();
   });
 
   it("respects custom filename", async () => {
-    const upload = vi.fn(async () => ({ downloadUrl: "https://x" }));
+    const create = vi.fn(async () => ({ url: "https://x" }));
     const sdk = {
-      uploads: { upload },
+      uploads: { create },
       billing: { state: vi.fn(async () => billingState(999_999_999)) },
     };
     const c = ctx({ sdk: sdk as never });
@@ -91,16 +91,16 @@ describe("upload_file", () => {
       c,
       { signal: new AbortController().signal } as never,
     );
-    expect(upload).toHaveBeenCalledWith(
+    expect(create).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ filename: "renamed.txt" }),
     );
   });
 
   it("rejects oversize files using cached limit", async () => {
-    const upload = vi.fn();
+    const create = vi.fn();
     const sdk = {
-      uploads: { upload },
+      uploads: { create },
       billing: { state: vi.fn() }, // should NOT be called — cache is set
     };
     const c = ctx({ sdk: sdk as never, cachedMaxFileSize: 5 });
@@ -108,15 +108,15 @@ describe("upload_file", () => {
     await expect(
       tool!.execute({ path: small }, c, { signal: new AbortController().signal } as never),
     ).rejects.toThrow(/exceeds.*limit/i);
-    expect(upload).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
     expect(sdk.billing.state).not.toHaveBeenCalled();
   });
 
   it("populates limit cache via billing.state when cold", async () => {
-    const upload = vi.fn(async () => ({ downloadUrl: "https://x" }));
+    const create = vi.fn(async () => ({ url: "https://x" }));
     const billingStateFn = vi.fn(async () => billingState(100));
     const sdk = {
-      uploads: { upload },
+      uploads: { create },
       billing: { state: billingStateFn },
     };
     const c = ctx({ sdk: sdk as never });

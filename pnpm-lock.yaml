@@ -15,8 +15,8 @@ importers:
         specifier: ^1.29.0
         version: 1.29.0(zod@3.25.76)
       '@rendobar/sdk':
-        specifier: ^1.0.0
-        version: 1.0.0
+        specifier: ^3.0.0
+        version: 3.0.0
       zod:
         specifier: ^3.25.0
         version: 3.25.76
@@ -483,8 +483,8 @@ packages:
   '@open-draft/until@2.1.0':
     resolution: {integrity: sha512-U69T3ItWHvLwGg5eJ0n3I62nWuE6ilHlmz7zM0npLBRvPRd7e6NYmg54vvRtP5mZG7kZqZCFVdsTWo7BPtBujg==}
 
-  '@rendobar/sdk@1.0.0':
-    resolution: {integrity: sha512-nxBuZ11+0XzecmyxxV3ckiErf4mBc5hYMjFGW58NSmD2nDVv7bpEtZYfLKqBFCRDFcy1sbGJsjCMpvR7mddMUA==}
+  '@rendobar/sdk@3.0.0':
+    resolution: {integrity: sha512-i9RrML7qq7E0j9Tl4oT8QIt5lizwYE+9sqdq7PESE/zcrLYA+/YuMcBF1fMmhKtOHAsEdgzzpGGLIZQjSdBrSw==}
     engines: {node: '>=18'}
 
   '@rollup/rollup-android-arm-eabi@4.60.2':
@@ -2102,7 +2102,7 @@ snapshots:
 
   '@open-draft/until@2.1.0': {}
 
-  '@rendobar/sdk@1.0.0':
+  '@rendobar/sdk@3.0.0':
     dependencies:
       partysocket: 1.1.18
     transitivePeerDependencies:
