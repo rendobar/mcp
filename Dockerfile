@@ -7,7 +7,7 @@
 # RENDOBAR_API_KEY (a key starting with rb_). Auth is validated lazily on the
 # first tool call, so a placeholder key is enough for a host to start the
 # server and introspect the tool list for scoring.
-FROM node:22-alpine
+FROM node:24-alpine
 
 # Install the published package. Pin a version at build time with
 # --build-arg MCP_VERSION=x.y.z; defaults to the latest release.

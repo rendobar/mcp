@@ -34,7 +34,7 @@ export interface ToolDef<I extends ZodRawShape, O extends ZodRawShape> {
   outputSchema?: O;
   annotations: ToolAnnotations;
   execute: (
-    args: z.objectOutputType<I, z.ZodTypeAny>,
+    args: z.infer<z.ZodObject<I>>,
     ctx: RendobarContext,
     extra: ToolExtra,
   ) => Promise<unknown>;
@@ -73,7 +73,7 @@ export function registerToolDef<I extends ZodRawShape, O extends ZodRawShape>(
     const wrapped = withErrorMapping(ctx, tool.name, () =>
       // SDK validates `args` against our Zod inputSchema before invoking the handler,
       // so this cast only narrows the already-validated shape from `unknown`.
-      tool.execute(args as z.objectOutputType<I, z.ZodTypeAny>, ctx, extra),
+      tool.execute(args as z.infer<z.ZodObject<I>>, ctx, extra),
     );
     return wrapped();
   };

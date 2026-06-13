@@ -1,0 +1,16 @@
+# Single-package repo (no workspace packages). This file exists so pnpm 10+
+# reads dependency overrides from here — the package.json `pnpm.overrides`
+# field is no longer honored as of pnpm 10.
+#
+# Pin a single zod copy across the tree. @modelcontextprotocol/sdk uses
+# `zod/v4` internally; a second zod copy breaks `registerTool` overloads
+# (TS2589). See .claude/rules/mcp.md §1.2.
+overrides:
+  zod: ^4.0.0
+
+# pnpm 10+ blocks dependency build scripts by default. esbuild needs its
+# postinstall to link the platform binary (tsup + vitest depend on it); msw
+# sets up its service worker on install. Allow both.
+allowBuilds:
+  esbuild: true
+  msw: true
