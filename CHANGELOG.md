@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/rendobar/mcp/compare/v1.2.2...v1.3.0) (2026-06-13)
+
+
+### Features
+
+* document optional ffmpeg compute (gpu) param in submit_job ([#43](https://github.com/rendobar/mcp/issues/43)) ([1352a55](https://github.com/rendobar/mcp/commit/1352a55b4f5ec84eb8f617c18a5068096b048d1e))
+
 ## [1.2.2](https://github.com/rendobar/mcp/compare/v1.2.1...v1.2.2) (2026-06-10)
 
 
