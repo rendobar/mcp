@@ -5,8 +5,9 @@ Active job types:
            params.command is the FFmpeg command using those names as filenames.
            Optional params.compute ('auto' | 'cpu' | 'gpu') defaults to 'auto',
            routing NVENC/CUDA commands to a GPU; 'gpu' forces GPU (NVIDIA L4, Pro plan).
-  captions.animate — burn animated word-level captions onto a video
-                     (Hormozi / MrBeast / TikTok / pill presets).
+  captions.animate — burn animated word-level captions onto a video. Style
+                     presets, position, translation, AI keyword highlighting,
+                     SRT/VTT output, bring-your-own-transcript.
   caption.burn — burn static styled subtitles into a video from an SRT/VTT/ASS
                  file, or auto-transcribe when none is given.
 
