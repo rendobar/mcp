@@ -3,6 +3,8 @@ export const SERVER_INSTRUCTIONS = `Rendobar processes existing media files in t
 Active job types:
   ffmpeg — run a custom FFmpeg command. inputs maps logical names to URLs;
            params.command is the FFmpeg command using those names as filenames.
+           Optional params.compute ('auto' | 'cpu' | 'gpu') defaults to 'auto',
+           routing NVENC/CUDA commands to a GPU; 'gpu' forces GPU (NVIDIA L4, Pro plan).
   captions.animate — burn animated word-level captions onto a video
                      (Hormozi / MrBeast / TikTok / pill presets).
   caption.burn — burn static styled subtitles into a video from an SRT/VTT/ASS

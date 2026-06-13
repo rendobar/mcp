@@ -211,7 +211,10 @@ const submitJobBaseDescription =
   `Rendobar runs the job on its own infrastructure and returns a hosted output URL.\n\n` +
   `FFmpeg inputs accept a URL string, { url }, { content } (inline text staged verbatim ` +
   `into the workdir, for subtitle files or ffmpeg concat lists), or { ref } (an ` +
-  `already-uploaded asset, by its asset ID). The bare URL string and { url } are equivalent.`;
+  `already-uploaded asset, by its asset ID). The bare URL string and { url } are equivalent.\n\n` +
+  `FFmpeg also accepts an optional params.compute ('auto' | 'cpu' | 'gpu'). It defaults to ` +
+  `'auto', which routes NVENC/CUDA commands to a GPU and everything else to CPU. Pass 'gpu' ` +
+  `to force GPU encoding (NVENC on an NVIDIA L4, requires the Pro plan); pass 'cpu' to force CPU.`;
 
 // Polymorphic ffmpeg input source — mirrors inputSourceSchema in the API
 // (packages/shared/src/jobs/definitions/shared.ts) and the remote MCP tool. Each
@@ -235,7 +238,11 @@ const submitJobInputSchema = {
   params: z
     .record(z.string(), z.unknown())
     .optional()
-    .describe("Type-specific parameters. For ffmpeg: { command: '...' }"),
+    .describe(
+      "Type-specific parameters. For ffmpeg: { command: '...', compute?: 'auto' | 'cpu' | 'gpu' } — " +
+        "compute defaults to 'auto' and routes NVENC/CUDA commands to a GPU; 'gpu' forces GPU " +
+        "encoding (NVIDIA L4, Pro plan), 'cpu' forces CPU.",
+    ),
   idempotencyKey: z
     .string()
     .optional()
