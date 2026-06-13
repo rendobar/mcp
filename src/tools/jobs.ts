@@ -263,7 +263,7 @@ const FEATURED_JOB_TYPES: ReadonlyArray<{ type: string; summary: string }> = [
   {
     type: "captions.animate",
     summary:
-      "Burn animated word-level captions onto a video (Hormozi / MrBeast / TikTok / pill presets).",
+      "Burn animated word-level captions onto a video. Built-in style presets, custom position, translation, AI keyword highlighting, SRT/VTT output, and bring-your-own-transcript.",
   },
   {
     type: "caption.burn",
