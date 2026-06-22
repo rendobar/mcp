@@ -232,7 +232,7 @@ describe("get_job", () => {
           id: "job_x", orgId: "org_x", type: "ffmpeg", status: "failed",
           inputs: {}, params: {},
           error: {
-            code: "PROVIDER_ERROR",
+            code: "RUNNER_ERROR",
             message: "Provider returned 500",
             detail: "Conversion failed!\n[libx264 @ 0x..] missing pps",
             retryable: true,
@@ -248,7 +248,7 @@ describe("get_job", () => {
     const tool = jobTools().find((t) => t.name === "get_job");
     const result = await tool!.execute({ jobId: "job_x" }, c, {} as never) as Record<string, unknown>;
     expect(result.error).toMatchObject({
-      code: "PROVIDER_ERROR",
+      code: "RUNNER_ERROR",
       message: "Provider returned 500",
       detail: "Conversion failed!\n[libx264 @ 0x..] missing pps",
       retryable: true,
