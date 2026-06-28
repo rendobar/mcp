@@ -28,6 +28,14 @@
       "pinDigests": true,
       "groupName": "github-actions",
       "automerge": true
+    },
+    {
+      "matchPackageNames": ["@rendobar/**"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "schedule": ["at any time"],
+      "automerge": true,
+      "platformAutomerge": true,
+      "groupName": "rendobar internal deps"
     }
   ],
   "dependencyDashboard": true,
