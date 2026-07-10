@@ -32,3 +32,5 @@ test/fixtures/*.mov
 *.log
 npm-debug.log*
 pnpm-debug.log*
+
+.claude/
