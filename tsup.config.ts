@@ -14,6 +14,9 @@ export default defineConfig({
   banner: ({ format }) => format === "esm" ? { js: "#!/usr/bin/env node" } : {},
   define: {
     "__PACKAGE_VERSION__": JSON.stringify(pkg.version),
+    // Public write-only PostHog project token for anonymous telemetry. Injected
+    // from RB_POSTHOG_KEY at release build; empty otherwise (telemetry disabled).
+    "__RB_POSTHOG_KEY__": JSON.stringify(process.env.RB_POSTHOG_KEY ?? ""),
   },
   onSuccess: process.platform === "win32" ? undefined : "chmod +x dist/bin.js",
 });

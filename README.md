@@ -232,6 +232,18 @@ Check logs in your client's output panel. The server writes JSON lines to stderr
 
 Expected when no key is set — the server starts and advertises its tools so clients can list them, but tool calls need an API key. Set `RENDOBAR_API_KEY` (or `--api-key`, or run `rb login`). On startup without a key the server logs a `no_api_key` warning to stderr.
 
+## Telemetry
+
+The server sends anonymous usage analytics (via PostHog's MCP Analytics SDK) so we can see how agents use it and make it better. Each tool call reports the tool name, whether it succeeded, how long it took, and the agent's stated intent.
+
+It does not send your tool parameters or responses. Those (file URLs, job configs, outputs) are stripped before anything leaves the process. Events are anonymous: no account identity, no person profile.
+
+It is off in CI automatically. To turn it off anywhere, set an environment variable:
+
+```bash
+DO_NOT_TRACK=1        # or RENDOBAR_TELEMETRY=0
+```
+
 ## Contributing
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md). For AI-assisted development, see [AGENTS.md](./AGENTS.md) and [CLAUDE.md](./CLAUDE.md).
