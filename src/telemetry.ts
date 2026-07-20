@@ -50,16 +50,22 @@ interface TelemetryState {
   enabled: boolean;
 }
 
+// The state file doesn't change during a server's lifetime, so read it once and
+// cache. Avoids a disk read on every tool call (telemetryEnabled + capture).
+let cachedState: TelemetryState | null = null;
+
 function readState(): TelemetryState {
+  if (cachedState) return cachedState;
   try {
     const raw: unknown = JSON.parse(readFileSync(statePath(), "utf8"));
     if (raw && typeof raw === "object") {
       const r = raw as Record<string, unknown>;
-      return {
+      cachedState = {
         anonymousId:
           typeof r.anonymousId === "string" ? r.anonymousId : `mcp_anon_${randomUUID()}`,
         enabled: r.enabled !== false,
       };
+      return cachedState;
     }
   } catch {
     /* missing/corrupt -> fresh */
@@ -72,6 +78,7 @@ function readState(): TelemetryState {
   } catch {
     /* best-effort */
   }
+  cachedState = fresh;
   return fresh;
 }
 
