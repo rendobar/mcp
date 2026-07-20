@@ -61,7 +61,11 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm test
-      - run: pnpm build
+      - name: Build (inject PostHog token via tsup define)
+        run: pnpm build
+        env:
+          # Public PostHog project token for MCP analytics (repo variable).
+          RB_POSTHOG_KEY: ${{ vars.RB_POSTHOG_KEY }}
 
       - name: Publish to npm via OIDC trusted publisher
         env:
