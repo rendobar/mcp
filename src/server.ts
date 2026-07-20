@@ -2,7 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createContext } from "./context.js";
 import { SERVER_INSTRUCTIONS } from "./instructions.js";
 import { registerTools } from "./tools/index.js";
-import { maybeLogNotice } from "./telemetry.js";
+import { setupMcpAnalytics } from "./telemetry.js";
 import type { Logger } from "./logger.js";
 import type { ResolvedConfig } from "./config.js";
 
@@ -32,14 +32,14 @@ export async function createRendobarMcpServer(opts: CreateServerOptions): Promis
 
   await registerTools(server, ctx);
 
-  // One-time transparency line to the host's stderr log (never stdout — that is
-  // the MCP protocol channel). No-op when telemetry is disabled/opted out.
-  maybeLogNotice((msg) => opts.logger.info({ msg }));
+  // PostHog MCP Analytics — anonymous, opt-out, tool payloads redacted. Returns a
+  // flush/shutdown cleanup, or null when disabled. See telemetry.ts.
+  const shutdownAnalytics = setupMcpAnalytics(server, opts.logger);
 
   return {
     server,
     cleanup: async () => {
-      // SDK has no explicit close — letting GC reclaim fetch instances is fine.
+      if (shutdownAnalytics) await shutdownAnalytics();
     },
   };
 }

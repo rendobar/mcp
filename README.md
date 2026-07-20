@@ -234,9 +234,9 @@ Expected when no key is set — the server starts and advertises its tools so cl
 
 ## Telemetry
 
-The server sends anonymous usage stats so we can see which tools agents use and make it better. Each tool call reports one event: the tool name, whether it succeeded, how long it took, the server version, and your OS.
+The server sends anonymous usage analytics (via PostHog's MCP Analytics SDK) so we can see how agents use it and make it better. Each tool call reports the tool name, whether it succeeded, how long it took, and the agent's stated intent.
 
-It never sends tool arguments, file names or contents, URLs, credentials, or account identity. The identifier is a random per-machine id, not tied to your account.
+It does not send your tool parameters or responses. Those (file URLs, job configs, outputs) are stripped before anything leaves the process. Events are anonymous: no account identity, no person profile.
 
 It is off in CI automatically. To turn it off anywhere, set an environment variable:
 

@@ -2,7 +2,6 @@ import type { z, ZodRawShape } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import { withErrorMapping } from "../errors.js";
-import { captureToolCall } from "../telemetry.js";
 import type { RendobarContext } from "../context.js";
 
 /**
@@ -71,25 +70,12 @@ export function registerToolDef<I extends ZodRawShape, O extends ZodRawShape>(
   }
 
   const handler = async (args: unknown, extra: ToolExtra): Promise<CallToolResult> => {
-    const start = Date.now();
-    let ok = true;
-    try {
-      const wrapped = withErrorMapping(ctx, tool.name, () =>
-        // SDK validates `args` against our Zod inputSchema before invoking the handler,
-        // so this cast only narrows the already-validated shape from `unknown`.
-        tool.execute(args as z.infer<z.ZodObject<I>>, ctx, extra),
-      );
-      const result = await wrapped();
-      ok = result.isError !== true;
-      return result;
-    } catch (err) {
-      ok = false;
-      throw err;
-    } finally {
-      // Anonymous, fire-and-forget: tool name + success + duration only. Never
-      // args, files, or credentials. No-ops when disabled/opted out.
-      captureToolCall(tool.name, ok, Date.now() - start);
-    }
+    const wrapped = withErrorMapping(ctx, tool.name, () =>
+      // SDK validates `args` against our Zod inputSchema before invoking the handler,
+      // so this cast only narrows the already-validated shape from `unknown`.
+      tool.execute(args as z.infer<z.ZodObject<I>>, ctx, extra),
+    );
+    return wrapped();
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
