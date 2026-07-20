@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createContext } from "./context.js";
 import { SERVER_INSTRUCTIONS } from "./instructions.js";
 import { registerTools } from "./tools/index.js";
+import { maybeLogNotice } from "./telemetry.js";
 import type { Logger } from "./logger.js";
 import type { ResolvedConfig } from "./config.js";
 
@@ -30,6 +31,10 @@ export async function createRendobarMcpServer(opts: CreateServerOptions): Promis
   );
 
   await registerTools(server, ctx);
+
+  // One-time transparency line to the host's stderr log (never stdout — that is
+  // the MCP protocol channel). No-op when telemetry is disabled/opted out.
+  maybeLogNotice((msg) => opts.logger.info({ msg }));
 
   return {
     server,

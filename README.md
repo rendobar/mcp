@@ -232,6 +232,18 @@ Check logs in your client's output panel. The server writes JSON lines to stderr
 
 Expected when no key is set — the server starts and advertises its tools so clients can list them, but tool calls need an API key. Set `RENDOBAR_API_KEY` (or `--api-key`, or run `rb login`). On startup without a key the server logs a `no_api_key` warning to stderr.
 
+## Telemetry
+
+The server sends anonymous usage stats so we can see which tools agents use and make it better. Each tool call reports one event: the tool name, whether it succeeded, how long it took, the server version, and your OS.
+
+It never sends tool arguments, file names or contents, URLs, credentials, or account identity. The identifier is a random per-machine id, not tied to your account.
+
+It is off in CI automatically. To turn it off anywhere, set an environment variable:
+
+```bash
+DO_NOT_TRACK=1        # or RENDOBAR_TELEMETRY=0
+```
+
 ## Contributing
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md). For AI-assisted development, see [AGENTS.md](./AGENTS.md) and [CLAUDE.md](./CLAUDE.md).
