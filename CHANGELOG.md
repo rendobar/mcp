@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/rendobar/mcp/compare/v1.3.0...v1.4.0) (2026-07-20)
+
+
+### Features
+
+* PostHog MCP Analytics (anonymous, params redacted, opt-out) ([#70](https://github.com/rendobar/mcp/issues/70)) ([53339e0](https://github.com/rendobar/mcp/commit/53339e00d2044634f5deb3f6b225378dd05e6d59))
+
 ## [1.3.0](https://github.com/rendobar/mcp/compare/v1.2.2...v1.3.0) (2026-06-13)
 
 
