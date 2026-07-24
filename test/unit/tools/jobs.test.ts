@@ -424,3 +424,123 @@ describe("cancel_job", () => {
     expect(sdk.jobs.cancel).toHaveBeenCalledWith("job_x");
   });
 });
+
+describe("get_job wait mode", () => {
+  const COMPLETE_JOB = {
+    id: "job_w",
+    type: "ffmpeg",
+    status: "complete",
+    createdAt: 1000,
+    completedAt: 6000,
+    steps: [],
+    cost: { amount: 100, currency: "USD", formatted: "$0.10" },
+    output: { data: null, file: null, files: [], expiresAt: null },
+  };
+
+  it("uses jobs.wait when wait:true and returns the terminal result", async () => {
+    const sdk = {
+      jobs: {
+        wait: vi.fn(async () => COMPLETE_JOB),
+        get: vi.fn(),
+      },
+    };
+    const c = ctx(sdk);
+    const tool = jobTools().find((t) => t.name === "get_job");
+    const result = (await tool!.execute(
+      { jobId: "job_w", wait: true },
+      c,
+      { signal: new AbortController().signal } as never,
+    )) as Record<string, unknown>;
+
+    expect(sdk.jobs.wait).toHaveBeenCalledWith("job_w", expect.objectContaining({ timeout: 50_000 }));
+    expect(sdk.jobs.get).not.toHaveBeenCalled();
+    expect(result.status).toBe("complete");
+    expect(result.durationMs).toBe(5000);
+  });
+
+  it("returns the latest snapshot instead of erroring when the wait times out", async () => {
+    const { WaitTimeoutError } = await import("@rendobar/sdk");
+    const sdk = {
+      jobs: {
+        wait: vi.fn(async () => {
+          throw new WaitTimeoutError("job_w", "running", 50_000);
+        }),
+        get: vi.fn(async () => ({
+          id: "job_w",
+          type: "ffmpeg",
+          status: "running",
+          createdAt: 1000,
+          completedAt: null,
+          steps: [
+            { name: "download", status: "complete" },
+            { name: "execute", status: "running" },
+          ],
+        })),
+      },
+    };
+    const c = ctx(sdk);
+    const tool = jobTools().find((t) => t.name === "get_job");
+    const result = (await tool!.execute(
+      { jobId: "job_w", wait: true },
+      c,
+      { signal: new AbortController().signal } as never,
+    )) as Record<string, unknown>;
+
+    expect(result.status).toBe("running");
+    expect(result.progress).toBe(0.5);
+    expect(result.step).toBe("execute");
+  });
+
+  it("skips waiting entirely when wait is omitted", async () => {
+    const sdk = {
+      jobs: {
+        wait: vi.fn(),
+        get: vi.fn(async () => COMPLETE_JOB),
+      },
+    };
+    const c = ctx(sdk);
+    const tool = jobTools().find((t) => t.name === "get_job");
+    await tool!.execute({ jobId: "job_w" }, c, { signal: new AbortController().signal } as never);
+    expect(sdk.jobs.wait).not.toHaveBeenCalled();
+    expect(sdk.jobs.get).toHaveBeenCalledWith("job_w");
+  });
+
+  it("forwards step progress notifications while waiting when a progressToken is set", async () => {
+    const notifications: Array<Record<string, unknown>> = [];
+    const sdk = {
+      jobs: {
+        wait: vi.fn(async (_id: string, opts: { onProgress?: (j: unknown) => void }) => {
+          opts.onProgress?.({
+            id: "job_w",
+            status: "running",
+            steps: [
+              { name: "download", status: "complete" },
+              { name: "execute", status: "running" },
+            ],
+          });
+          return COMPLETE_JOB;
+        }),
+        get: vi.fn(),
+      },
+    };
+    const c = ctx(sdk);
+    const tool = jobTools().find((t) => t.name === "get_job");
+    await tool!.execute(
+      { jobId: "job_w", wait: true },
+      c,
+      {
+        signal: new AbortController().signal,
+        _meta: { progressToken: "tok_1" },
+        sendNotification: async (n: Record<string, unknown>) => {
+          notifications.push(n);
+        },
+      } as never,
+    );
+
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0]).toMatchObject({
+      method: "notifications/progress",
+      params: { progressToken: "tok_1", progress: 1, total: 2 },
+    });
+  });
+});
