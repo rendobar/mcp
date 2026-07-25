@@ -26,7 +26,11 @@ export function withErrorMapping<T>(
           isError: true,
           content: [{
             type: "text",
-            text: JSON.stringify({ error: { code: e.code, message: e.message } }),
+            // Same error contract as the remote MCP server and the REST
+            // envelope: stable machine code + human message + retryable signal.
+            text: JSON.stringify({
+              error: { code: e.code, message: e.message, retryable: e.statusCode === 429 },
+            }),
           }],
         };
       }

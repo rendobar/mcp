@@ -1,4 +1,5 @@
 import { z, type ZodRawShape } from "zod";
+import { WaitTimeoutError } from "@rendobar/sdk";
 import { defineTool, type ToolDef } from "./util.js";
 import { getSdk } from "../context.js";
 
@@ -84,6 +85,24 @@ function reshapeOutput(output: Output): Record<string, unknown> {
   return out;
 }
 
+// Declared output shape for tools that return job data. Mirrors reshapeOutput
+// exactly — every key the execute can emit must appear here, because the MCP
+// SDK validates structuredContent against the declared outputSchema.
+const outputShapeSchema = z.object({
+  data: z.unknown().optional().describe("Computed JSON answer (probe info, detections, transcript)"),
+  file: fileSchema.optional().describe("Headline produced file"),
+  fileCount: z.number().optional(),
+  files: fileSchema.array().optional().describe("Every produced file"),
+  expiresAt: z.number().optional().describe("Epoch ms when the file URLs expire"),
+});
+
+const jobErrorSchema = z.object({
+  code: z.string(),
+  message: z.string(),
+  detail: z.string().nullable(),
+  retryable: z.boolean(),
+});
+
 const listJobsTool = defineTool({
   name: "list_jobs",
   title: "List Recent Rendobar Jobs",
@@ -110,6 +129,26 @@ const listJobsTool = defineTool({
       .max(50)
       .default(10)
       .describe("How many jobs to return, newest first (1–50, default 10)."),
+  },
+  outputSchema: {
+    jobs: z.array(
+      z.object({
+        id: z.string(),
+        type: z.string(),
+        status: z.string(),
+        createdAt: z.string().describe("ISO 8601"),
+        cost: z.string().nullable(),
+        output: z
+          .object({
+            url: z.string().optional().describe("Headline file URL"),
+            fileCount: z.number().optional(),
+            hasData: z.boolean().optional().describe("True when a computed data answer exists — fetch it with get_job"),
+          })
+          .optional()
+          .describe("Compact summary, present on complete jobs only"),
+      }),
+    ),
+    total: z.number(),
   },
   annotations: {
     readOnlyHint: true,
@@ -152,13 +191,37 @@ const listJobsTool = defineTool({
 
 // ── get_job ───────────────────────────────────────────────────
 
+// Long-poll cap for get_job's wait mode. Technical limit, not a product cap:
+// MCP clients typically time tool calls out at 60s, so we return a snapshot
+// just under that and let the agent call again to keep waiting.
+const WAIT_TIMEOUT_MS = 50_000;
+
 const getJobTool = defineTool({
   name: "get_job",
   title: "Get Rendobar Job",
   description:
-    "Check status and get results of a submitted job. Poll until status is 'complete' or 'failed'. Returns progress, current step, cost, and output when done. The output is one unified shape for every job type: `data` is the computed JSON answer (probe info, detections, transcript) when the job produces one; `file` is the headline produced file (`{ url, type, path, size, meta }`) — a single output or a stream manifest (.m3u8/.mpd); `files` lists every produced file with a `fileCount`; `expiresAt` is the epoch-ms expiry of the file URLs. Data-only jobs have `file` null and no files; file-only jobs have no `data`. Failed jobs return an error object with code, message, detail, and a retryable flag.",
+    "Check status and get results of a submitted job. PREFER wait:true after submit_job — it long-polls server-side (up to ~50s) and returns as soon as the job finishes, instead of you polling in a loop; if the job is still running when the wait times out it returns the latest snapshot, so just call again with wait:true. Returns progress, current step, cost, and output when done. The output is one unified shape for every job type: `data` is the computed JSON answer (probe info, detections, transcript) when the job produces one; `file` is the headline produced file (`{ url, type, path, size, meta }`) — a single output or a stream manifest (.m3u8/.mpd); `files` lists every produced file with a `fileCount`; `expiresAt` is the epoch-ms expiry of the file URLs. Data-only jobs have `file` null and no files; file-only jobs have no `data`. Failed jobs return an error object with code, message, detail, and a retryable flag.",
   inputSchema: {
     jobId: z.string().describe("Job ID returned by submit_job (e.g. 'job_abc123')"),
+    wait: z
+      .boolean()
+      .optional()
+      .describe(
+        "When true, wait for the job to reach a terminal status (long-poll, up to ~50 seconds) instead of returning the current status immediately. Times out gracefully with the latest snapshot — call again with wait:true to keep waiting.",
+      ),
+  },
+  outputSchema: {
+    id: z.string(),
+    type: z.string(),
+    status: z
+      .string()
+      .describe("Open set: waiting | dispatched | running | complete | failed | cancelled"),
+    progress: z.number().optional().describe("Fraction of completed steps (0–1); present while running"),
+    step: z.string().optional().describe("Name of the currently running step"),
+    cost: z.string().optional().describe("Formatted cost, present when complete"),
+    durationMs: z.number().optional(),
+    output: outputShapeSchema.optional().describe("Present when complete"),
+    error: jobErrorSchema.optional().describe("Present when failed"),
   },
   annotations: {
     readOnlyHint: true,
@@ -166,8 +229,47 @@ const getJobTool = defineTool({
     idempotentHint: true,
     openWorldHint: true,
   },
-  execute: async (args, ctx) => {
-    const job = await getSdk(ctx).jobs.get(args.jobId);
+  execute: async (args, ctx, extra) => {
+    const sdk = getSdk(ctx);
+
+    let job;
+    if (args.wait === true) {
+      const progressToken = extra._meta?.progressToken;
+      try {
+        job = await sdk.jobs.wait(args.jobId, {
+          timeout: WAIT_TIMEOUT_MS,
+          signal: extra.signal,
+          onProgress: (j) => {
+            // Forward step progress to clients that asked for it. Fire-and-forget:
+            // a dropped notification must never fail the wait itself.
+            if (progressToken === undefined || extra.sendNotification === undefined) return;
+            const steps = j.steps ?? [];
+            const done = steps.filter((s) => s.status === "complete").length;
+            void extra
+              .sendNotification({
+                method: "notifications/progress",
+                params: {
+                  progressToken,
+                  progress: done,
+                  total: steps.length > 0 ? steps.length : undefined,
+                  message: `status: ${j.status}`,
+                },
+              })
+              .catch(() => {});
+          },
+        });
+      } catch (e) {
+        // Timeout is not an error for the agent: return the latest snapshot so it
+        // can decide to keep waiting or move on.
+        if (e instanceof WaitTimeoutError) {
+          job = await sdk.jobs.get(args.jobId);
+        } else {
+          throw e;
+        }
+      }
+    } else {
+      job = await sdk.jobs.get(args.jobId);
+    }
     const shape = parseJobShape(job);
 
     const result: Record<string, unknown> = {
@@ -281,8 +383,13 @@ function buildSubmitJobTool(activeTypes: ReadonlyArray<{ type: string; summary: 
     description:
       submitJobBaseDescription +
       typesText +
-      `\n\nFor local files, call upload_file first to get a downloadUrl, then use it as inputs.source.`,
+      `\n\nFor local files, call upload_file first to get a downloadUrl, then use it as inputs.source. ` +
+      `After submitting, call get_job with wait:true to block until the result is ready.`,
     inputSchema: submitJobInputSchema,
+    outputSchema: {
+      jobId: z.string(),
+      status: z.string().describe("Initial status, normally 'waiting'"),
+    },
     annotations: {
       readOnlyHint: false,
       destructiveHint: false,
@@ -312,6 +419,10 @@ const cancelJobTool = defineTool({
     "Cancel a job that has not started running. Only jobs in status 'waiting' or 'dispatched' can be cancelled. Use when the user changes their mind, or when you submitted the wrong job. Running, completed, failed, or already-cancelled jobs cannot be cancelled.",
   inputSchema: {
     jobId: z.string().describe("Job ID to cancel (e.g. 'job_abc123')"),
+  },
+  outputSchema: {
+    id: z.string(),
+    status: z.string().describe("'cancelled' on success"),
   },
   annotations: {
     readOnlyHint: false,

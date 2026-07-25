@@ -39,13 +39,31 @@ The difference from the hosted MCP at `api.rendobar.com`: this server runs local
 
 ## Install
 
+### Fastest: Claude Code, no API key
+
+Claude Code can connect to Rendobar's hosted MCP over OAuth. No key to copy, no config file to edit — your browser opens once to approve:
+
+```bash
+claude mcp add --transport http rendobar https://api.rendobar.com/mcp
+```
+
+The hosted server cannot read files on your disk. If you want an agent to upload local files (the reason this package exists), use the local stdio server below instead.
+
+### Local stdio server (this package)
+
 You don't install it. Configure your MCP client to spawn it via `npx`.
 
-### Get an API key
+#### Get an API key
 
 Sign up at [app.rendobar.com](https://app.rendobar.com) → Settings → API Keys.
 
-### Configure your client
+#### Claude Code (terminal)
+
+```bash
+claude mcp add rendobar -s user --env RENDOBAR_API_KEY=rb_... -- npx -y @rendobar/mcp
+```
+
+Already ran `rb login` with the Rendobar CLI? Drop the `--env` part — the server reads the credentials file automatically.
 
 #### Claude Desktop
 
@@ -111,12 +129,6 @@ Edit `.vscode/mcp.json`:
 }
 ```
 
-#### Claude Code (terminal)
-
-```bash
-claude mcp add rendobar -s user --env RENDOBAR_API_KEY=rb_... -- npx -y @rendobar/mcp
-```
-
 #### Continue
 
 Create `.continue/mcpServers/rendobar.yaml`:
@@ -135,7 +147,7 @@ env:
 |---|---|
 | `upload_file` | Upload a local file. Returns a download URL to use in `submit_job`. |
 | `submit_job` | Submit any Rendobar job. Its description lists the active job types. |
-| `get_job` | Poll job status, fetch result. |
+| `get_job` | Fetch job status + result. Pass `wait: true` to long-poll until the job finishes (~50s cap, then returns a snapshot). |
 | `list_jobs` | List recent jobs. |
 | `cancel_job` | Cancel a waiting/dispatched job. |
 | `get_account` | Check balance, plan limits, active job count. |
@@ -199,7 +211,7 @@ and directories can list them; calls that need the API return a clear error unti
 |---|---|---|
 | Transport | stdio, spawned by your client | Streamable HTTP |
 | Local file upload | Yes, the whole point | No, server has no disk |
-| Setup | `npx` line in a config file | Bearer API key over HTTP |
+| Setup | `npx` line in a config file | OAuth in the browser (`claude mcp add --transport http`), or a Bearer API key |
 | Best for | Claude Desktop, Cursor, Cline, Zed, local agents | claude.ai web, ChatGPT, hosted gateways |
 
 ## Authentication

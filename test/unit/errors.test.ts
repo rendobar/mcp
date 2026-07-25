@@ -36,10 +36,21 @@ describe("withErrorMapping", () => {
     const result = await wrapped();
     expect(result.isError).toBe(true);
     const payload = JSON.parse((result.content[0] as { text: string }).text);
-    expect(payload).toEqual({ error: { code: "INSUFFICIENT_CREDITS", message: "Not enough credits" } });
+    expect(payload).toEqual({ error: { code: "INSUFFICIENT_CREDITS", message: "Not enough credits", retryable: false } });
     expect(ctx.logger.error).toHaveBeenCalledWith(
       expect.objectContaining({ tool: "test_tool", ok: false, errCode: "INSUFFICIENT_CREDITS" }),
     );
+  });
+
+  it("marks 429 rate limits as retryable", async () => {
+    const ctx = fakeCtx();
+    const wrapped = withErrorMapping(ctx, "test_tool", async () => {
+      throw new ApiError("RATE_LIMITED", 429, "Too many requests");
+    });
+    const result = await wrapped();
+    expect(result.isError).toBe(true);
+    const payload = JSON.parse((result.content[0] as { text: string }).text);
+    expect(payload.error.retryable).toBe(true);
   });
 
   it("rethrows unknown errors so MCP returns -32603", async () => {
