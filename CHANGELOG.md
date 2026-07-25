@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/rendobar/mcp/compare/v1.4.0...v1.5.0) (2026-07-25)
+
+
+### Features
+
+* get_job wait mode, output schemas, retryable errors ([#74](https://github.com/rendobar/mcp/issues/74)) ([6f2f17d](https://github.com/rendobar/mcp/commit/6f2f17ddb65070bba79a58212cee7c373b44e964))
+
 ## [1.4.0](https://github.com/rendobar/mcp/compare/v1.3.0...v1.4.0) (2026-07-20)
 
 
