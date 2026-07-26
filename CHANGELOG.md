@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.2](https://github.com/rendobar/mcp/compare/v1.7.1...v1.7.2) (2026-07-26)
+
+
+### Bug Fixes
+
+* repair the dead websiteUrl and guard the registry entry ([#83](https://github.com/rendobar/mcp/issues/83)) ([4056a53](https://github.com/rendobar/mcp/commit/4056a533f5e7867ccdc162d921840a938583c4c5))
+
 ## [1.7.1](https://github.com/rendobar/mcp/compare/v1.7.0...v1.7.1) (2026-07-26)
 
 
