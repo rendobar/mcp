@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/rendobar/mcp/compare/v1.5.0...v1.6.0) (2026-07-26)
+
+
+### Features
+
+* job chaining input + list_job_types discovery tool ([#76](https://github.com/rendobar/mcp/issues/76)) ([17a6ef1](https://github.com/rendobar/mcp/commit/17a6ef1a9b0b0003036f4e40bca4b1ce1cdf163f))
+
 ## [1.5.0](https://github.com/rendobar/mcp/compare/v1.4.0...v1.5.0) (2026-07-25)
 
 
