@@ -1,13 +1,27 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
-  "name": "io.github.rendobar/mcp",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "com.rendobar/mcp",
   "title": "Rendobar",
-  "description": "Rendobar — serverless media processing for AI agents",
+  "description": "Serverless media processing: FFmpeg jobs, timeline composition, captions, and compression.",
   "websiteUrl": "https://rendobar.com/docs/mcp/",
   "repository": {
     "url": "https://github.com/rendobar/mcp",
     "source": "github"
   },
+  "icons": [
+    {
+      "src": "https://rendobar.com/docs/_mintlify/favicons/rendobar/hAz85wJLG3Ql27TF/_generated/favicon/android-chrome-192x192.png",
+      "mimeType": "image/png",
+      "sizes": ["192x192"],
+      "theme": "light"
+    },
+    {
+      "src": "https://rendobar.com/docs/_mintlify/favicons/rendobar/hAz85wJLG3Ql27TF/_generated/favicon-dark/android-chrome-192x192.png",
+      "mimeType": "image/png",
+      "sizes": ["192x192"],
+      "theme": "dark"
+    }
+  ],
   "version": "1.6.0",
   "packages": [
     {
@@ -27,6 +41,12 @@
           "format": "string"
         }
       ]
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://api.rendobar.com/mcp"
     }
   ]
 }
