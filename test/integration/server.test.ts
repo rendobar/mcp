@@ -86,7 +86,7 @@ describe("MCP server integration", () => {
     await cleanup();
   });
 
-  it("lists registered tools (6 expected: account + 4 jobs + upload)", async () => {
+  it("lists registered tools (7 expected: account + 5 jobs + upload)", async () => {
     const { client, cleanup } = await makeClientServerPair();
     const tools = await client.listTools();
     const names = new Set(tools.tools.map((t) => t.name));
@@ -95,7 +95,28 @@ describe("MCP server integration", () => {
     expect(names.has("get_job")).toBe(true);
     expect(names.has("submit_job")).toBe(true);
     expect(names.has("cancel_job")).toBe(true);
+    expect(names.has("list_job_types")).toBe(true);
     expect(names.has("upload_file")).toBe(true);
+    await client.close();
+    await cleanup();
+  });
+
+  it("list_job_types calls GET /jobs/types and returns jobTypes + guidance", async () => {
+    const { client, cleanup } = await makeClientServerPair();
+    const result = await client.callTool({ name: "list_job_types", arguments: {} });
+    expect(result.isError).toBeFalsy();
+    expect(result.structuredContent).toMatchObject({
+      jobTypes: [
+        {
+          type: "raw.ffmpeg",
+          tag: "FFmpeg",
+          summary: "Run an FFmpeg command",
+          acceptsMedia: ["video", "image", "audio"],
+        },
+      ],
+    });
+    const content = result.structuredContent as { guidance: string };
+    expect(typeof content.guidance).toBe("string");
     await client.close();
     await cleanup();
   });
@@ -160,11 +181,19 @@ describe("MCP server integration", () => {
 // server with NO credentials and calls tools/list. The server must boot and
 // advertise all tools anyway, then fail cleanly only when a tool is executed.
 describe("MCP server boots without an API key", () => {
-  it("still lists all 6 tools when started keyless", async () => {
+  it("still lists all 7 tools when started keyless", async () => {
     const { client, cleanup } = await makeClientServerPair(null);
     const tools = await client.listTools();
     const names = new Set(tools.tools.map((t) => t.name));
-    for (const name of ["get_account", "list_jobs", "get_job", "submit_job", "cancel_job", "upload_file"]) {
+    for (const name of [
+      "get_account",
+      "list_jobs",
+      "get_job",
+      "submit_job",
+      "cancel_job",
+      "list_job_types",
+      "upload_file",
+    ]) {
       expect(names.has(name)).toBe(true);
     }
     await client.close();
