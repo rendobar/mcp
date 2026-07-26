@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.1](https://github.com/rendobar/mcp/compare/v1.7.0...v1.7.1) (2026-07-26)
+
+
+### Bug Fixes
+
+* serve registry icons from cdn.rendobar.com ([#80](https://github.com/rendobar/mcp/issues/80)) ([a79b335](https://github.com/rendobar/mcp/commit/a79b335287c4467b297692cc00643676d3fcca06))
+
 ## [1.7.0](https://github.com/rendobar/mcp/compare/v1.6.0...v1.7.0) (2026-07-26)
 
 
