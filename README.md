@@ -28,30 +28,38 @@
   <img src="https://img.shields.io/node/v/@rendobar/mcp?style=flat-square&color=059669" alt="Node version">
 </p>
 
-`@rendobar/mcp` is the official Model Context Protocol server for [Rendobar](https://rendobar.com), a serverless media processing API. The server runs locally over stdio, reads files straight from your disk, and gives an AI agent six job types: raw FFmpeg commands, timeline composition, compression to a target size, subtitle burn-in, animated captions, and media inspection. Jobs run on Rendobar's infrastructure and return a hosted URL.
+`@rendobar/mcp` is the official Model Context Protocol server for [Rendobar](https://rendobar.com), a serverless media processing API. The server runs locally over stdio and reads files straight from your disk, so an AI agent can take a video off your machine, run an FFmpeg command against it on Rendobar's infrastructure, and hand back a hosted URL. Purpose-built job types cover timeline composition, compression to a size budget, subtitle burn-in, animated captions, and media inspection.
 
 Published to npm as `@rendobar/mcp` and to the [official MCP Registry](https://registry.modelcontextprotocol.io) as `com.rendobar/mcp`.
 
 ## Without it
 
-> **You:** Compress `talk.mp4` to under 50 MB.
+> **You:** Mute the first 3 seconds of `intro.mp4`.
 
-The agent tells you to install FFmpeg. You look up whether to use CRF or two-pass, guess a number, wait, check the size, guess again. Twenty minutes later you have a file and no idea if the quality was worth it.
+The agent tells you to install FFmpeg. Then you go looking for how to gate a
+filter on a timestamp, land on `volume=enable='lt(t,3)'`, and lose another few
+minutes to quote escaping in your shell. Nobody remembers that syntax, which is
+the problem.
 
 ## With it
 
-> **You:** Compress `talk.mp4` to under 50 MB.
+> **You:** Mute the first 3 seconds of `intro.mp4`.
 
 ```jsonc
-upload_file  { "path": "~/talks/talk.mp4" }
-submit_job   { "type": "compress.target",
-               "inputs": { "source": "https://cdn.rendobar.com/u/abc123/talk.mp4" },
-               "params": { "target": { "maxSize": "50mb" } } }
+upload_file  { "path": "~/clips/intro.mp4" }
+// → { "downloadUrl": "https://cdn.rendobar.com/u/abc123/intro.mp4", "sizeBytes": 4821004 }
+
+submit_job   { "type": "ffmpeg",
+               "inputs": { "intro.mp4": "https://cdn.rendobar.com/u/abc123/intro.mp4" },
+               "params": { "command": "-i intro.mp4 -af \"volume=enable='lt(t,3)':volume=0\" -c:v copy out.mp4" } }
+// → { "jobId": "job_9f2a", "status": "waiting" }
+
 get_job      { "jobId": "job_9f2a", "wait": true }
 // → complete · $0.01 · https://cdn.rendobar.com/o/job_9f2a/out.mp4
 ```
 
-No FFmpeg on your machine. No guessing at flags. The agent reports what it actually achieved.
+The agent writes the filter. Rendobar runs it. Nothing gets installed on your
+machine, and `-c:v copy` means the video stream is never re-encoded.
 
 ## Install
 
@@ -158,16 +166,22 @@ Needs Node 20.10 or later. The server checks at startup and exits with a clear m
 
 ## Job types
 
-| `type` | Accepts | What it does |
-|---|---|---|
-| `ffmpeg` | video | Any FFmpeg command: transcode, trim, mux, filter, concat. |
-| `ffprobe` | video, image, audio | Read codec, resolution, duration, rotation before committing to parameters. |
-| `compose` | video | Render from a JSON timeline: clips, transitions, text overlays, keyframes, multi-track audio. |
-| `compress.target` | video, image, audio | Hit a size or quality budget and report what it achieved. |
-| `caption.burn` | video | Burn an SRT, VTT, or ASS file into the video, or transcribe when none is given. |
-| `captions.animate` | video | Word-level animated captions. Eleven presets including Hormozi, MrBeast, TikTok, karaoke. |
+**`ffmpeg`** is the one to reach for first. It takes a command the way you would
+write it locally, runs it on hosted infrastructure, and hands back a URL:
+transcode, trim, mux, filter, concat, whatever the flags allow. Pass
+`params.compute` as `gpu` to force NVENC encoding (Pro plan), or leave it on
+`auto` and Rendobar routes CUDA commands to a GPU and everything else to CPU.
 
-That table is a snapshot of this release. `list_job_types` reads the registry on every call, so it never goes stale. Prefer it.
+Beyond that there are purpose-built types for
+[timeline composition](https://rendobar.com/docs/jobs/compose),
+[compression to a size budget](https://rendobar.com/docs/jobs/compress),
+[subtitle burn-in](https://rendobar.com/docs/jobs/captions/burn),
+[animated captions](https://rendobar.com/docs/jobs/captions/animate), and
+[media inspection](https://rendobar.com/docs/jobs/ffprobe).
+
+Full reference: **[rendobar.com/docs/jobs](https://rendobar.com/docs/jobs)**. Or
+call `list_job_types`, which reads the registry live and is always current. This
+README deliberately does not enumerate them, so it cannot go stale.
 
 ### Chaining
 
