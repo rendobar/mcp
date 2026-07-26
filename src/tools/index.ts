@@ -9,7 +9,7 @@ export async function registerTools(server: McpServer, ctx: RendobarContext): Pr
   for (const tool of accountTools()) {
     registerToolDef(server, ctx, tool);
   }
-  for (const tool of await jobToolsAsync(ctx.sdk)) {
+  for (const tool of await jobToolsAsync(ctx.sdk, ctx.config.apiBase)) {
     registerToolDef(server, ctx, tool);
   }
   for (const tool of uploadTools()) {
