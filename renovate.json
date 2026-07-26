@@ -30,6 +30,11 @@
       "automerge": true
     },
     {
+      "matchPackageNames": ["typescript"],
+      "allowedVersions": "<7",
+      "description": "typescript-eslint declares peerDependencies typescript >=4.8.4 <6.1.0 and reads TS internals that 7.x removed, so `pnpm lint` hard-crashes on module load with \"Cannot read properties of undefined (reading 'Cjs')\". onUnsupportedTypeScriptVersion does not help - the crash happens before that option is read. Lift this cap once typescript-eslint widens its peer range."
+    },
+    {
       "matchPackageNames": ["@rendobar/**"],
       "matchUpdateTypes": ["patch", "minor"],
       "schedule": ["at any time"],
