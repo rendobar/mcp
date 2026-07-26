@@ -10,10 +10,17 @@
   },
   "icons": [
     {
-      "src": "https://rendobar.com/docs/_mintlify/favicons/rendobar/hAz85wJLG3Ql27TF/_generated/favicon/android-chrome-192x192.png",
+      "src": "https://cdn.rendobar.com/assets/brand/web-app-manifest-192x192.png",
       "mimeType": "image/png",
       "sizes": [
         "192x192"
+      ]
+    },
+    {
+      "src": "https://cdn.rendobar.com/assets/brand/web-app-manifest-512x512.png",
+      "mimeType": "image/png",
+      "sizes": [
+        "512x512"
       ]
     }
   ],
