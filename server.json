@@ -24,13 +24,13 @@
       ]
     }
   ],
-  "version": "1.7.0",
+  "version": "1.7.1",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@rendobar/mcp",
-      "version": "1.7.0",
+      "version": "1.7.1",
       "transport": {
         "type": "stdio"
       },
