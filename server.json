@@ -3,7 +3,7 @@
   "name": "com.rendobar/mcp",
   "title": "Rendobar",
   "description": "Serverless media processing: FFmpeg jobs, timeline composition, captions, and compression.",
-  "websiteUrl": "https://rendobar.com/docs/mcp/",
+  "websiteUrl": "https://rendobar.com/docs/mcp-server",
   "repository": {
     "url": "https://github.com/rendobar/mcp",
     "source": "github"

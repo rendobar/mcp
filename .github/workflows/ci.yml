@@ -29,6 +29,19 @@ jobs:
       - run: pnpm build
       - run: pnpm test
 
+  registry-entry:
+    name: Registry entry
+    runs-on: ubuntu-latest
+    # No `needs: test` - this reads JSON and pings URLs, so it does not depend
+    # on the build and should report independently of a compile failure.
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with: { node-version: 24 }
+      # No pnpm install: the script is dependency-free on purpose.
+      - name: Check server.json consistency and URL liveness
+        run: node scripts/check-registry-entry.mjs
+
   bundle-size:
     name: Bundle size budget
     runs-on: ubuntu-latest
