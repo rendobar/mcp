@@ -146,11 +146,19 @@ env:
 | Tool | Purpose |
 |---|---|
 | `upload_file` | Upload a local file. Returns a download URL to use in `submit_job`. |
+| `list_job_types` | List every active job type with its summary and accepted media kinds. Call first when starting a media task. |
 | `submit_job` | Submit any Rendobar job. Its description lists the active job types. |
 | `get_job` | Fetch job status + result. Pass `wait: true` to long-poll until the job finishes (~50s cap, then returns a snapshot). |
 | `list_jobs` | List recent jobs. |
 | `cancel_job` | Cancel a waiting/dispatched job. |
 | `get_account` | Check balance, plan limits, active job count. |
+
+### Chaining jobs
+
+A `submit_job` input can reference a previous job's output directly, instead of downloading and
+re-uploading an intermediate result. For `ffmpeg` inputs, pass `{ job: "job_..." }` with a
+completed job's ID. For every other job type, call `get_job` on the completed job, take its
+output URL, and pass that URL as the input instead.
 
 ### Job types
 

@@ -553,3 +553,65 @@ describe("get_job wait mode", () => {
     });
   });
 });
+
+describe("list_job_types", () => {
+  it("reshapes the live registry into jobTypes + guidance", async () => {
+    const types = vi.fn(async () => [
+      { type: "ffmpeg", tag: "FFmpeg", summary: "Run an FFmpeg command", acceptsMedia: ["video", "image", "audio"] },
+      { type: "caption.burn", tag: "Captions", summary: "Burn subtitles into a video", acceptsMedia: ["video"] },
+    ]);
+    const c = ctx({ jobs: { types } });
+    const tool = jobTools().find((t) => t.name === "list_job_types");
+    const result = (await tool!.execute({}, c, {} as never)) as {
+      jobTypes: Record<string, unknown>[];
+      guidance: string;
+    };
+    expect(types).toHaveBeenCalledTimes(1);
+    expect(result.jobTypes).toEqual([
+      { type: "ffmpeg", tag: "FFmpeg", summary: "Run an FFmpeg command", acceptsMedia: ["video", "image", "audio"] },
+      { type: "caption.burn", tag: "Captions", summary: "Burn subtitles into a video", acceptsMedia: ["video"] },
+    ]);
+    expect(typeof result.guidance).toBe("string");
+    expect(result.guidance.length).toBeGreaterThan(0);
+  });
+
+  it("ignores internal fields (needs/pattern/runner) the SDK's type claims but the public endpoint doesn't send", async () => {
+    // Regression: the SDK's declared JobType additionally has needs/pattern/runner,
+    // but GET /jobs/types deliberately omits them (public shape only). We must not
+    // surface or depend on them — only the 4 fields the endpoint actually returns.
+    const types = vi.fn(async () => [
+      {
+        type: "ffmpeg",
+        tag: "FFmpeg",
+        summary: "Run an FFmpeg command",
+        acceptsMedia: ["video"],
+        needs: ["ffmpeg"],
+        pattern: null,
+        runner: { id: "r1", resource: "trigger" },
+      },
+    ]);
+    const c = ctx({ jobs: { types } });
+    const tool = jobTools().find((t) => t.name === "list_job_types");
+    const result = (await tool!.execute({}, c, {} as never)) as {
+      jobTypes: Record<string, unknown>[];
+    };
+    expect(result.jobTypes[0]).toEqual({
+      type: "ffmpeg",
+      tag: "FFmpeg",
+      summary: "Run an FFmpeg command",
+      acceptsMedia: ["video"],
+    });
+    expect(result.jobTypes[0]?.needs).toBeUndefined();
+    expect(result.jobTypes[0]?.pattern).toBeUndefined();
+    expect(result.jobTypes[0]?.runner).toBeUndefined();
+  });
+
+  it("propagates an API error (e.g. no key / unauthenticated) instead of swallowing it", async () => {
+    const types = vi.fn(async () => {
+      throw new Error("network down");
+    });
+    const c = ctx({ jobs: { types } });
+    const tool = jobTools().find((t) => t.name === "list_job_types");
+    await expect(tool!.execute({}, c, {} as never)).rejects.toThrow("network down");
+  });
+});

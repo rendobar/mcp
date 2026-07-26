@@ -445,6 +445,62 @@ const cancelJobTool = defineTool({
   },
 });
 
+// ── list_job_types ───────────────────────────────────────────
+
+// Shape we actually read from GET /jobs/types (via sdk.jobs.types()). The SDK's
+// own `JobType` type additionally declares `needs` / `pattern` / `runner` —
+// internal routing detail that the live public endpoint deliberately does NOT
+// serialize (apps/api/src/routes/jobs/discovery.ts in the monorepo: "Public shape
+// only — no internal routing detail"). The SDK does not Zod-validate its
+// responses at runtime, so trusting those extra fields would be a lie; we parse
+// only what the endpoint actually sends, at this boundary, per type-safety.md.
+const jobTypeEntrySchema = z.object({
+  type: z.string(),
+  tag: z.string(),
+  summary: z.string(),
+  acceptsMedia: z.array(z.string()),
+});
+
+const JOB_TYPES_GUIDANCE =
+  "Pick a type by its summary and acceptsMedia (the media kinds it takes), then call " +
+  "submit_job with that type. To chain jobs, pass a completed job's output as the next " +
+  "job's input: use { job: \"job_...\" } for ffmpeg; for every other job type, get the " +
+  "completed job's output URL from get_job and pass that URL instead.";
+
+const listJobTypesTool = defineTool({
+  name: "list_job_types",
+  title: "List Rendobar Job Types",
+  description:
+    "List every active job type with its short summary and the media kinds it accepts. " +
+    "Call once at the start of a media task and again when planning a chain or unsure. " +
+    "Result is always current.",
+  inputSchema: {} as ZodRawShape,
+  outputSchema: {
+    jobTypes: z.array(
+      z.object({
+        type: z.string().describe("Job type identifier, e.g. 'ffmpeg'"),
+        tag: z.string().describe("Category tag"),
+        summary: z.string().describe("Short description"),
+        acceptsMedia: z.array(z.string()).describe("Media kinds this type accepts, e.g. video, image, audio"),
+      }),
+    ),
+    guidance: z.string(),
+  },
+  annotations: {
+    readOnlyHint: true,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
+  },
+  execute: async (_args, ctx) => {
+    const raw = await getSdk(ctx).jobs.types();
+    return {
+      jobTypes: raw.map((t) => jobTypeEntrySchema.parse(t)),
+      guidance: JOB_TYPES_GUIDANCE,
+    };
+  },
+});
+
 // ── Factories ─────────────────────────────────────────────────
 
 // Common element type for heterogeneous tool arrays. Each ToolDef preserves
@@ -469,6 +525,7 @@ export function jobTools(): readonly AnyToolDef[] {
     widen(getJobTool),
     widen(buildSubmitJobTool([])),
     widen(cancelJobTool),
+    widen(listJobTypesTool),
   ];
 }
 
@@ -494,5 +551,6 @@ export async function jobToolsAsync(
     widen(getJobTool),
     widen(buildSubmitJobTool(activeTypes)),
     widen(cancelJobTool),
+    widen(listJobTypesTool),
   ];
 }
