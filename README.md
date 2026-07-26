@@ -16,7 +16,7 @@
 
 <p align="center">
   <a href="https://rendobar.com">Website</a> &nbsp;·&nbsp;
-  <a href="https://rendobar.com/docs/mcp/">MCP docs</a> &nbsp;·&nbsp;
+  <a href="https://rendobar.com/docs/mcp-server">MCP docs</a> &nbsp;·&nbsp;
   <a href="https://www.npmjs.com/package/@rendobar/mcp">npm</a> &nbsp;·&nbsp;
   <a href="https://discord.gg/kAGqjBzx8N">Discord</a>
 </p>
@@ -36,6 +36,8 @@
 `@rendobar/mcp` is the official Model Context Protocol server for [Rendobar](https://rendobar.com). It lets AI agents in Claude Desktop, Cursor, Cline, Windsurf, Zed, VS Code, Claude Code, and Continue submit Rendobar jobs and upload local files in a single tool call.
 
 The difference from the hosted MCP at `api.rendobar.com`: this server runs locally, so it can read and upload files straight from your machine. An agent can take a video on your disk, run an FFmpeg job on it, and hand back the result without you touching a browser.
+
+Published to npm as `@rendobar/mcp` and to the [official MCP Registry](https://registry.modelcontextprotocol.io) as `com.rendobar/mcp`, which is where most MCP directories pick it up from.
 
 ## Install
 
@@ -162,13 +164,19 @@ output URL, and pass that URL as the input instead.
 
 ### Job types
 
-`submit_job` takes a `type`. The active types:
+`submit_job` takes a `type`. The active types, as of this release:
 
-| `type` | What it does |
-|---|---|
-| `ffmpeg` | Run any FFmpeg command (transcode, trim, mux, filter, concat). |
-| `captions.animate` | Burn animated word-level captions onto a video (Hormozi / MrBeast / TikTok / pill presets). |
-| `caption.burn` | Burn static styled subtitles from an SRT/VTT/ASS file, or auto-transcribe when none is given. |
+| `type` | Accepts | What it does |
+|---|---|---|
+| `ffmpeg` | video | Run any FFmpeg command (transcode, trim, mux, filter, concat). |
+| `ffprobe` | video, image, audio | Inspect codec, resolution, duration, rotation before deciding parameters. |
+| `compose` | video | Render a video from a JSON timeline: multiple clips, transitions, text overlays, keyframes, multi-track audio. |
+| `compress.target` | video, image, audio | Compress to a target size or quality and report what it achieved. |
+| `caption.burn` | video | Burn static styled subtitles from an SRT/VTT/ASS file, or auto-transcribe when none is given. |
+| `captions.animate` | video | Burn animated word-level captions onto a video. Eleven presets, including Hormozi, MrBeast, TikTok, and karaoke. |
+
+This table is a snapshot. `list_job_types` reads the registry live on every
+call, so it is always current — prefer it over this list.
 
 ### Example
 
@@ -209,9 +217,11 @@ submit_job {
 // → { "jobId": "job_7c1b", "status": "waiting" }
 ```
 
-The server advertises its tools even before an API key is configured, so clients
-and directories can list them; calls that need the API return a clear error until
-`RENDOBAR_API_KEY` is set.
+The server starts without an API key, so clients and directories can list its
+tools before anyone has signed up. It reads the job registry unauthenticated
+too, so the type list above is live rather than a snapshot baked into the
+build. Calls that need the API return a clear error until `RENDOBAR_API_KEY`
+is set.
 
 ## Local vs hosted MCP
 
