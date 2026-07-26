@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.1](https://github.com/rendobar/mcp/compare/v1.8.0...v1.8.1) (2026-07-26)
+
+
+### Bug Fixes
+
+* rewrite the README, repair the dead docs link and stale job types ([#87](https://github.com/rendobar/mcp/issues/87)) ([780f74a](https://github.com/rendobar/mcp/commit/780f74a2ab8e6779c9c6598b9b2e8f73854ff96e))
+
 ## [1.8.0](https://github.com/rendobar/mcp/compare/v1.7.2...v1.8.0) (2026-07-26)
 
 
