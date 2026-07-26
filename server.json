@@ -10,20 +10,18 @@
   },
   "icons": [
     {
-      "src": "https://rendobar.com/docs/_mintlify/favicons/rendobar/hAz85wJLG3Ql27TF/_generated/favicon/android-chrome-192x192.png",
+      "src": "https://cdn.rendobar.com/assets/brand/web-app-manifest-192x192.png",
       "mimeType": "image/png",
       "sizes": [
         "192x192"
-      ],
-      "theme": "light"
+      ]
     },
     {
-      "src": "https://rendobar.com/docs/_mintlify/favicons/rendobar/hAz85wJLG3Ql27TF/_generated/favicon-dark/android-chrome-192x192.png",
+      "src": "https://cdn.rendobar.com/assets/brand/web-app-manifest-512x512.png",
       "mimeType": "image/png",
       "sizes": [
-        "192x192"
-      ],
-      "theme": "dark"
+        "512x512"
+      ]
     }
   ],
   "version": "1.7.0",
