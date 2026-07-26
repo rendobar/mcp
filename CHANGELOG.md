@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.0](https://github.com/rendobar/mcp/compare/v1.7.2...v1.8.0) (2026-07-26)
+
+
+### Features
+
+* read the live job registry without an API key ([#85](https://github.com/rendobar/mcp/issues/85)) ([0b8a115](https://github.com/rendobar/mcp/commit/0b8a1157c34b690c37242ddfaa64515072750c35))
+
 ## [1.7.2](https://github.com/rendobar/mcp/compare/v1.7.1...v1.7.2) (2026-07-26)
 
 
