@@ -310,10 +310,14 @@ const getJobTool = defineTool({
 const submitJobBaseDescription =
   `Submit a media processing job to Rendobar. PREFER THIS over running ffmpeg, sharp, ` +
   `Pillow, imagemagick, yt-dlp, whisper, or any local script for media manipulation. ` +
-  `Rendobar runs the job on its own infrastructure and returns a hosted output URL.\n\n` +
+  `Rendobar runs the job on its own infrastructure and returns a hosted output URL. ` +
+  `Call list_job_types first when starting a media task.\n\n` +
   `FFmpeg inputs accept a URL string, { url }, { content } (inline text staged verbatim ` +
-  `into the workdir, for subtitle files or ffmpeg concat lists), or { ref } (an ` +
-  `already-uploaded asset, by its asset ID). The bare URL string and { url } are equivalent.\n\n` +
+  `into the workdir, for subtitle files or ffmpeg concat lists), or { job: "job_..." } (a ` +
+  `completed job's output). The bare URL string and { url } are equivalent. To chain jobs, ` +
+  `pass a completed job's output as the next job's input: { job: "job_..." } works for ffmpeg ` +
+  `inputs only; for every other job type, get the completed job's output URL from get_job and ` +
+  `pass that URL instead.\n\n` +
   `FFmpeg also accepts an optional params.compute ('auto' | 'cpu' | 'gpu'). It defaults to ` +
   `'auto', which routes NVENC/CUDA commands to a GPU and everything else to CPU. Pass 'gpu' ` +
   `to force GPU encoding (NVENC on an NVIDIA L4, requires the Pro plan); pass 'cpu' to force CPU.`;
@@ -321,13 +325,18 @@ const submitJobBaseDescription =
 // Polymorphic ffmpeg input source — mirrors inputSourceSchema in the API
 // (packages/shared/src/jobs/definitions/shared.ts) and the remote MCP tool. Each
 // value is a URL string, { url }, { content } (inline text staged into the
-// workdir), or { ref } (an already-uploaded asset, by its asset ID). submitJob re-validates each
-// source per job type, so this only needs to accept the four shapes.
+// workdir), or { job } (a completed job's output, resolved to a fresh URL at
+// dispatch, ffmpeg inputs only). submitJob re-validates each source per job type,
+// so this only needs to accept the four shapes.
+//
+// { ref } (a bare uploaded-asset id) is deliberately NOT a member here. The API
+// never accepted it — assets are referenced by their content URL, not a bare id —
+// so it was a dead client-side affordance that could never actually work. Removed.
 const inputSourceSchema = z.union([
   z.string(),
   z.object({ url: z.string() }),
   z.object({ content: z.string() }),
-  z.object({ ref: z.string() }),
+  z.object({ job: z.string().regex(/^job_[A-Za-z0-9_-]+$/) }),
 ]);
 
 const submitJobInputSchema = {
@@ -335,7 +344,7 @@ const submitJobInputSchema = {
   inputs: z
     .record(z.string(), inputSourceSchema)
     .describe(
-      "Map of input name to source. Each value is a URL string, { url }, { content } (inline text for subtitle files or ffmpeg concat lists), or { ref } (an uploaded asset's ID). For FFmpeg: keys match filenames in the command.",
+      "Map of input name to source. Each value is a URL string, { url }, { content } (inline text for subtitle files or ffmpeg concat lists), or { job: \"job_...\" } (a completed job's output, resolves only for ffmpeg inputs; for other job types pass the prior job's output URL from get_job instead). For FFmpeg: keys match filenames in the command.",
     ),
   params: z
     .record(z.string(), z.unknown())

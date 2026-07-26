@@ -357,7 +357,7 @@ describe("submit_job", () => {
     }));
   });
 
-  it("forwards polymorphic inputs (string | {url} | {content} | {ref}) verbatim", async () => {
+  it("forwards polymorphic inputs (string | {url} | {content} | {job}) verbatim", async () => {
     const create = vi.fn(async () => ({ id: "job_poly", status: "waiting" as const }));
     const c = ctx({ jobs: { create } });
     const tool = jobTools().find((t) => t.name === "submit_job");
@@ -365,7 +365,7 @@ describe("submit_job", () => {
       "video.mp4": "https://x/y.mp4",
       "clip.mp4": { url: "https://x/z.mp4" },
       "subs.srt": { content: "1\n00:00:00,000 --> 00:00:01,000\nhi" },
-      "logo.png": { ref: "uploads/org_a/logo" },
+      "prior.mp4": { job: "job_abc123" },
     };
     await tool!.execute(
       { type: "raw.ffmpeg", inputs, params: { command: "ffmpeg ..." } },
@@ -384,22 +384,31 @@ describe("submit_job inputs schema — polymorphic ffmpeg sources", () => {
     return inputs;
   })();
 
-  it("accepts URL string, {url}, {content}, {ref}, and a mixed map", () => {
+  it("accepts URL string, {url}, {content}, {job}, and a mixed map", () => {
     expect(inputsSchema.safeParse({ a: "https://x/y.mp4" }).success).toBe(true);
     expect(inputsSchema.safeParse({ a: { url: "https://x/y.mp4" } }).success).toBe(true);
     expect(inputsSchema.safeParse({ a: { content: "file 'a.mp4'" } }).success).toBe(true);
-    expect(inputsSchema.safeParse({ a: { ref: "uploads/org/asset" } }).success).toBe(true);
+    expect(inputsSchema.safeParse({ a: { job: "job_abc123" } }).success).toBe(true);
     expect(
       inputsSchema.safeParse({
         v: "https://x/y.mp4",
         s: { content: "subs" },
-        l: { ref: "uploads/org/logo" },
+        j: { job: "job_abc123" },
       }).success,
     ).toBe(true);
   });
 
   it("rejects an unsupported source shape", () => {
     expect(inputsSchema.safeParse({ a: { urls: ["https://x/y.mp4"] } }).success).toBe(false);
+  });
+
+  it("rejects the dead { ref } form — the API never accepted it", () => {
+    expect(inputsSchema.safeParse({ a: { ref: "uploads/org/asset" } }).success).toBe(false);
+  });
+
+  it("rejects a { job } value that isn't a job_ id", () => {
+    expect(inputsSchema.safeParse({ a: { job: "asset_abc123" } }).success).toBe(false);
+    expect(inputsSchema.safeParse({ a: { job: "not-an-id" } }).success).toBe(false);
   });
 });
 
