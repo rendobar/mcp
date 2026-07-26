@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.0](https://github.com/rendobar/mcp/compare/v1.6.0...v1.7.0) (2026-07-26)
+
+
+### Features
+
+* publish registry entry under com.rendobar namespace ([#78](https://github.com/rendobar/mcp/issues/78)) ([ce8356a](https://github.com/rendobar/mcp/commit/ce8356abc157c1c673fd9ed154b5e1302b16e3ab))
+
 ## [1.6.0](https://github.com/rendobar/mcp/compare/v1.5.0...v1.6.0) (2026-07-26)
 
 
