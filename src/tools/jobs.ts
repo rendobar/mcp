@@ -360,32 +360,13 @@ const submitJobInputSchema = {
     .describe("Prevents duplicate jobs on retry. Unique value per logical operation."),
 };
 
-// Keyless fallback. The server can boot without an API key (directory indexers
-// like Glama launch it to read tools/list, and the live registry fetch needs a
-// key), so we always advertise the currently featured job types. When a key IS
-// present, sdk.jobs.types() overrides this with the live registry. Keep this set
-// in sync with the featured job types on https://rendobar.com/llms.txt.
-const FEATURED_JOB_TYPES: ReadonlyArray<{ type: string; summary: string }> = [
-  {
-    type: "ffmpeg",
-    summary:
-      "Run any FFmpeg command on hosted infrastructure (transcode, trim, mux, filter, concat).",
-  },
-  {
-    type: "captions.animate",
-    summary:
-      "Burn animated word-level captions onto a video. Built-in style presets, custom position, translation, AI keyword highlighting, SRT/VTT output, and bring-your-own-transcript.",
-  },
-  {
-    type: "caption.burn",
-    summary:
-      "Burn static styled subtitles into a video from an SRT/VTT/ASS file, or auto-transcribe when none is given.",
-  },
-];
-
 function buildSubmitJobTool(activeTypes: ReadonlyArray<{ type: string; summary: string }>) {
-  const types = activeTypes.length > 0 ? activeTypes : FEATURED_JOB_TYPES;
-  const typesText = `\n\nActive job types:\n${types.map((t) => `  ${t.type} — ${t.summary}`).join("\n")}`;
+  // Empty only when the registry was unreachable at startup. Say so rather than
+  // implying Rendobar has no job types; list_job_types retries on every call.
+  const typesText =
+    activeTypes.length > 0
+      ? `\n\nActive job types:\n${activeTypes.map((t) => `  ${t.type} — ${t.summary}`).join("\n")}`
+      : `\n\nThe job type registry was unreachable at startup. Call list_job_types for the current list.`;
   return defineTool({
     name: "submit_job",
     title: "Submit Rendobar Job",
@@ -529,22 +510,48 @@ export function jobTools(): readonly AnyToolDef[] {
   ];
 }
 
+/**
+ * Read the live job registry without credentials.
+ *
+ * GET /jobs/types is public (rendobar/rendobar#426). Before that it required a
+ * key, which is why this file used to carry a hand-maintained FEATURED_JOB_TYPES
+ * fallback: a keyless boot could not reach the registry, so directory indexers
+ * like Glama — which launch the server purely to read tools/list — advertised
+ * that stale three-entry list instead of the real one. Now they see what
+ * everyone else sees.
+ */
+async function fetchPublicJobTypes(
+  apiBase: string,
+): Promise<ReadonlyArray<{ type: string; summary: string }>> {
+  const res = await fetch(new URL("/jobs/types", apiBase), {
+    headers: { Accept: "application/json" },
+    // Startup path: a hanging registry must not hang tool registration.
+    signal: AbortSignal.timeout(5_000),
+  });
+  if (!res.ok) throw new Error(`GET /jobs/types returned ${res.status}`);
+  const body: unknown = await res.json();
+  return z
+    .object({ data: z.array(z.object({ type: z.string(), summary: z.string() })) })
+    .parse(body).data;
+}
+
 // Async factory used by registerTools at startup. Snapshots active job types
 // once. Description rebuild on registry change requires a server restart (rare).
-// `sdk` is null when the server booted without an API key: we skip the network
-// fetch and register the tools with a generic description so they remain
-// listable (the key is enforced later, at execute time).
+// `sdk` is null when the server booted without an API key; discovery is public,
+// so we still read the live registry, just unauthenticated.
 export async function jobToolsAsync(
   sdk: {
     jobs: { types(): Promise<ReadonlyArray<{ type: string; summary: string }>> };
   } | null,
+  apiBase: string,
 ): Promise<readonly AnyToolDef[]> {
   let activeTypes: ReadonlyArray<{ type: string; summary: string }> = [];
   try {
-    if (sdk !== null) activeTypes = await sdk.jobs.types();
+    activeTypes = sdk !== null ? await sdk.jobs.types() : await fetchPublicJobTypes(apiBase);
   } catch {
-    // If the types fetch fails at startup, fall through to a generic description.
-    // Tools still work — just the LLM-facing list of "active types" is empty.
+    // Registry unreachable at startup (offline, DNS, outage). Tools still
+    // register and work; only the description's type list is empty, and
+    // list_job_types retries on every call.
   }
   return [
     widen(listJobsTool),
