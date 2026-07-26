@@ -183,6 +183,60 @@ jobs:
           /tmp/mcp-publisher login dns --domain rendobar.com --private-key "$MCP_DNS_KEY"
           /tmp/mcp-publisher publish || echo "::warning::MCP registry publish failed — fix forward"
 
+      - name: Verify the registry actually has this version
+        # The publish step above is continue-on-error by design (npm is the
+        # source of truth). That means a broken DNS key, an expired proof, or a
+        # registry outage degrades to a warning nobody reads, and the listing
+        # silently stops updating. This step is NOT continue-on-error: if the
+        # version is not live, the job fails and rollback-on-failure opens an
+        # issue. npm has already published at this point, so the fix is always
+        # forward - re-run the workflow once the cause is addressed.
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          node --input-type=module -e '
+            const name = "com.rendobar/mcp";
+            const want = process.env.VERSION;
+            const url = `https://registry.modelcontextprotocol.io/v0.1/servers?search=${encodeURIComponent(name)}`;
+            const meta = (e) => e._meta?.["io.modelcontextprotocol.registry/official"] ?? {};
+
+            async function isLive() {
+              // Indexing is not instant. Back off across ~3 minutes before failing.
+              for (const waitMs of [0, 10_000, 20_000, 30_000, 60_000, 60_000]) {
+                if (waitMs) await new Promise((r) => setTimeout(r, waitMs));
+                let entries;
+                try {
+                  const res = await fetch(url, { signal: AbortSignal.timeout(20_000) });
+                  if (!res.ok) { console.log(`registry HTTP ${res.status}, retrying`); continue; }
+                  entries = (await res.json()).servers ?? [];
+                } catch (err) {
+                  console.log(`registry fetch failed (${err.message}), retrying`);
+                  continue;
+                }
+
+                console.log(
+                  `versions: ${entries.map((e) => `${e.server?.version}${meta(e).isLatest ? "*" : ""}`).join(", ") || "none"}`,
+                );
+
+                const found = entries.find((e) => e.server?.version === want);
+                if (found && meta(found).isLatest) return true;
+                if (found) {
+                  const latest = entries.find((e) => meta(e).isLatest);
+                  console.log(`${want} present but latest is ${latest?.server?.version}; retrying`);
+                }
+              }
+              return false;
+            }
+
+            // Set exitCode rather than calling process.exit(): an AbortSignal
+            // timer may still be pending, and exiting on a live handle trips a
+            // libuv assertion on Windows (exit 127 instead of 1).
+            const live = await isLive();
+            if (live) console.log(`${name}@${want} is live and marked latest.`);
+            else console.log(`::error::${name}@${want} is not the latest entry in the MCP registry.`);
+            process.exitCode = live ? 0 : 1;
+          '
+
   rollback-on-failure:
     needs: publish
     if: failure()
