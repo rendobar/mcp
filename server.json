@@ -14,16 +14,7 @@
       "mimeType": "image/png",
       "sizes": [
         "192x192"
-      ],
-      "theme": "light"
-    },
-    {
-      "src": "https://rendobar.com/docs/_mintlify/favicons/rendobar/hAz85wJLG3Ql27TF/_generated/favicon-dark/android-chrome-192x192.png",
-      "mimeType": "image/png",
-      "sizes": [
-        "192x192"
-      ],
-      "theme": "dark"
+      ]
     }
   ],
   "version": "1.7.0",
