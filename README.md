@@ -161,7 +161,7 @@ Needs Node 20.10 or later. The server checks at startup and exits with a clear m
 | `submit_job` | Submit a job of any type. |
 | `get_job` | Status and result. Pass `wait: true` to long-poll for ~50s. |
 | `list_jobs` | Recent jobs. |
-| `cancel_job` | Cancel a waiting or dispatched job. |
+| `cancel_job` | Cancel a waiting, dispatched or running job. |
 | `get_account` | Balance, plan limits, active job count. |
 
 ## Job types
