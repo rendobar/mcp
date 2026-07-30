@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.2](https://github.com/rendobar/mcp/compare/v1.8.1...v1.8.2) (2026-07-30)
+
+
+### Bug Fixes
+
+* stop advertising a stale job type list ([#97](https://github.com/rendobar/mcp/issues/97)) ([f048af7](https://github.com/rendobar/mcp/commit/f048af713b1ef4e6496c6fdac8a7f494858555aa))
+
 ## [1.8.1](https://github.com/rendobar/mcp/compare/v1.8.0...v1.8.1) (2026-07-26)
 
 
