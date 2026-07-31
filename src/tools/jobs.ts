@@ -448,7 +448,7 @@ const cancelJobTool = defineTool({
   name: "cancel_job",
   title: "Cancel Rendobar Job",
   description:
-    "Cancel a job that has not started running. Only jobs in status 'waiting' or 'dispatched' can be cancelled. Use when the user changes their mind, or when you submitted the wrong job. Running, completed, failed, or already-cancelled jobs cannot be cancelled.",
+    "Cancel a job. Jobs in status 'waiting', 'dispatched' or 'running' can be cancelled (a running job's upstream execution is stopped too). Use when the user changes their mind, or when you submitted the wrong job. Completed, failed, or already-cancelled jobs cannot be cancelled.",
   inputSchema: {
     jobId: z.string().describe("Job ID to cancel (e.g. 'job_abc123')"),
   },
