@@ -15,8 +15,8 @@ importers:
         specifier: ^1.29.0
         version: 1.29.0(zod@4.4.3)
       '@posthog/mcp':
-        specifier: ^0.9.1
-        version: 0.9.1(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(posthog-node@5.46.1)
+        specifier: ^0.10.0
+        version: 0.10.1(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(posthog-node@5.46.1)
       '@rendobar/sdk':
         specifier: ^3.0.1
         version: 3.4.0
@@ -364,21 +364,15 @@ packages:
   '@oxc-project/types@0.139.0':
     resolution: {integrity: sha512-r9gHphtCs+1M7J0pw6Sn/hh/Wpa/iQrOOkrNAlVLF/gHq+/CJmHIWKKUUhdWjcD6CIa8idarspCsASiXCXvFUw==}
 
-  '@posthog/core@1.43.1':
-    resolution: {integrity: sha512-hGM8f5sp3we6Em/RQHXbmyYm554hUx9+9jhf92ZQgDS4/xW72KHyZiO9wcFye+qAx2cJAOhOCDIznmO1FV8IbA==}
-
   '@posthog/core@1.45.1':
     resolution: {integrity: sha512-tLtvzomavb2PPWdGYKsusyIzIeL2Px47v348Smibkay7sMy/83TyPk+Ptsp2NdeOgJsbuwSxWkR2+XA0aSCAaA==}
 
-  '@posthog/mcp@0.9.1':
-    resolution: {integrity: sha512-7gqU5jc5XbgGkOj58XitQIQTHkqtk/DT0agKChof57N3aODeJ7+3nYBZ+hLx4pVpKNuaVmGduJ1zfF14vJk7jQ==}
+  '@posthog/mcp@0.10.1':
+    resolution: {integrity: sha512-TMe6BvDCzMMaWP30jMuJKWDbqrDZ6xLjknzQFGXkaD5EPiq4EcU8FImjZBSZ6l1ipQdnPmkx2Z+R4bKhlx9Z6A==}
     engines: {node: ^20.20.0 || >=22.22.0}
     peerDependencies:
       '@modelcontextprotocol/sdk': '>=1.26.0'
       posthog-node: ^5.0.0
-
-  '@posthog/types@1.397.0':
-    resolution: {integrity: sha512-Pa7FtsBo3V0XrhY4y8Xquwp8U07syuZ2IGQdlsRyxhz0yejQLceFjI58UssCXE5zDCDj3km5l7H3ufD6rHChCg==}
 
   '@posthog/types@1.398.0':
     resolution: {integrity: sha512-sJMkl4k+u8yS/0fjHsKqE9xTdsAh30a2WvgChiptellnVoE0e8QJKFgqOMD2sk8FaEArPdeFklAhXvmENAt3Sg==}
@@ -2108,21 +2102,15 @@ snapshots:
 
   '@oxc-project/types@0.139.0': {}
 
-  '@posthog/core@1.43.1':
-    dependencies:
-      '@posthog/types': 1.397.0
-
   '@posthog/core@1.45.1':
     dependencies:
       '@posthog/types': 1.398.0
 
-  '@posthog/mcp@0.9.1(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(posthog-node@5.46.1)':
+  '@posthog/mcp@0.10.1(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(posthog-node@5.46.1)':
     dependencies:
       '@modelcontextprotocol/sdk': 1.29.0(zod@4.4.3)
-      '@posthog/core': 1.43.1
+      '@posthog/core': 1.45.1
       posthog-node: 5.46.1
-
-  '@posthog/types@1.397.0': {}
 
   '@posthog/types@1.398.0': {}
 

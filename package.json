@@ -56,7 +56,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@posthog/mcp": "^0.9.1",
+    "@posthog/mcp": "^0.10.0",
     "@rendobar/sdk": "^3.0.1",
     "posthog-node": "^5.45.2",
     "zod": "^4.4.3"
