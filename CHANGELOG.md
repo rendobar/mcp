@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.3](https://github.com/rendobar/mcp/compare/v1.8.2...v1.8.3) (2026-07-31)
+
+
+### Bug Fixes
+
+* **deps:** bump dependency @posthog/mcp to ^0.10.0 ([#94](https://github.com/rendobar/mcp/issues/94)) ([acb7fde](https://github.com/rendobar/mcp/commit/acb7fde82bf1a66338600ec9eb63847201de0df1))
+* **deps:** bump dependency @rendobar/sdk to v5 ([#95](https://github.com/rendobar/mcp/issues/95)) ([79bf9c9](https://github.com/rendobar/mcp/commit/79bf9c9861f967d70fba6356d07abc9fdeae6e0a))
+
 ## [1.8.2](https://github.com/rendobar/mcp/compare/v1.8.1...v1.8.2) (2026-07-30)
 
 
