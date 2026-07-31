@@ -30,7 +30,7 @@ export async function createRendobarMcpServer(opts: CreateServerOptions): Promis
     },
   );
 
-  await registerTools(server, ctx);
+  registerTools(server, ctx);
 
   // PostHog MCP Analytics — anonymous, opt-out, tool payloads redacted. Returns a
   // flush/shutdown cleanup, or null when disabled. See telemetry.ts.

@@ -195,7 +195,7 @@ Three sources, first match wins:
 2. `RENDOBAR_API_KEY` environment variable
 3. `~/.config/rendobar/credentials.json` on Unix, `%APPDATA%\rendobar\credentials.json` on Windows, written by `rb login` (Rendobar CLI 1.1+)
 
-The server starts without a key so clients and directories can list its tools, and it reads the job registry unauthenticated, so the type list is live rather than baked into the build. Calls that reach the API return a clear error until a key is set.
+The server starts without a key so clients and directories can list its tools, and it makes no network call at startup. Nothing it advertises depends on the registry, so the job type list can never be baked into a build. `list_job_types` reads it live instead. Calls that reach the API return a clear error until a key is set.
 
 ## Telemetry
 
