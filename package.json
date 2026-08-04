@@ -3,7 +3,7 @@
   "version": "1.8.3",
   "type": "module",
   "license": "MIT",
-  "description": "Rendobar: serverless media processing and generation for AI agents. Run FFmpeg commands, compose video from a timeline, burn captions, compress to a budget, and generate images with hosted models.",
+  "description": "Rendobar: serverless media processing and generation for AI agents. Transform video, audio and images with FFmpeg, compose from a timeline, burn captions and compress to a budget. Generate and edit images from a text prompt, and upscale on a diffusion model.",
   "homepage": "https://rendobar.com/docs/mcp-server",
   "repository": {
     "type": "git",

@@ -30,9 +30,13 @@
 
 `@rendobar/mcp` is the official Model Context Protocol server for [Rendobar](https://rendobar.com), a serverless media processing API. The server runs locally over stdio and reads files straight from your disk, so an AI agent can take a file off your machine, process it on Rendobar's infrastructure, and hand back a hosted URL.
 
-Rendobar covers both sides of media work. **Deterministic processing** runs raw FFmpeg commands, inspects media, composes video from a declarative timeline, compresses to a size or quality budget, and burns in subtitles. **Model-backed jobs** generate and edit images from a prompt or a written instruction, upscale on a diffusion restoration model, and drive the transcription and keyword highlighting behind animated captions.
+Rendobar covers both sides of media work.
 
-The job list grows. This README names families rather than types, and `list_job_types` reads the current set live from the registry on every call.
+**Transform what you have.** Run any FFmpeg command against video, audio or images the way you would write it locally. Inspect a file and get a normalized summary plus the full ffprobe report. Compose video from a declarative JSON timeline. Compress to a target size or quality, where the encoder searches candidate encodes and returns the smallest file that clears the bar. Burn in subtitles from SRT, VTT or ASS, or let it transcribe when none is given.
+
+**Generate what you do not.** Create an image from a text prompt on hosted open-weight diffusion models. Edit up to four reference images from a written instruction, no masks and no coordinates. Upscale on a one-step diffusion restoration model that reconstructs detail rather than only sharpening. The same model-backed layer drives the transcription and keyword highlighting behind animated captions, so this is not an image-only capability.
+
+The job list grows over time, so this README names families rather than types. `list_job_types` reads the current set live from the registry on every call.
 
 Published to npm as `@rendobar/mcp` and to the [official MCP Registry](https://registry.modelcontextprotocol.io) as `com.rendobar/mcp`.
 
