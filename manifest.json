@@ -4,8 +4,8 @@
   "name": "rendobar",
   "display_name": "Rendobar",
   "version": "1.8.3",
-  "description": "Serverless media processing for AI agents. Run FFmpeg jobs on files from your disk.",
-  "long_description": "Rendobar runs media jobs in the cloud and hands back a hosted URL. This bundle is the local server, so an agent can take a video off your machine, run an FFmpeg command against it on Rendobar's infrastructure, and return the result without you touching a browser.\n\nBeyond raw FFmpeg there are purpose-built job types for timeline composition, compression to a size budget, subtitle burn-in, animated captions, and media inspection. Call `list_job_types` to read the current set live.\n\nThe server starts without an API key so its tools can be listed. Tool calls need a key, which you can set below or write once with `rb login` from the Rendobar CLI.",
+  "description": "Serverless media processing for AI agents, run on files from your own disk.",
+  "long_description": "Rendobar runs media jobs in the cloud and hands back a hosted URL. This bundle is the local server, so an agent can take a file off your machine, process it on Rendobar's infrastructure, and return the result without you touching a browser.\n\nCapabilities span raw FFmpeg commands, media inspection, video composition from a declarative timeline, compression to a size or quality budget, burned-in and animated captions, and image generation, editing and upscaling. Call `list_job_types` to read the current set live: it grows over time, so this description names families rather than a list that would go stale.\n\nThe server starts without an API key so its tools can be listed. Tool calls need a key, which you can set below or write once with `rb login` from the Rendobar CLI.",
   "author": {
     "name": "Rendobar",
     "email": "support@rendobar.com",

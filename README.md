@@ -28,7 +28,9 @@
   <img src="https://img.shields.io/node/v/@rendobar/mcp?style=flat-square&color=059669" alt="Node version">
 </p>
 
-`@rendobar/mcp` is the official Model Context Protocol server for [Rendobar](https://rendobar.com), a serverless media processing API. The server runs locally over stdio and reads files straight from your disk, so an AI agent can take a video off your machine, run an FFmpeg command against it on Rendobar's infrastructure, and hand back a hosted URL. Purpose-built job types cover timeline composition, compression to a size budget, subtitle burn-in, animated captions, and media inspection.
+`@rendobar/mcp` is the official Model Context Protocol server for [Rendobar](https://rendobar.com), a serverless media processing API. The server runs locally over stdio and reads files straight from your disk, so an AI agent can take a file off your machine, process it on Rendobar's infrastructure, and hand back a hosted URL.
+
+Capabilities span raw FFmpeg commands, media inspection, video composition from a declarative timeline, compression to a size or quality budget, burned-in and animated captions, and image generation, editing and upscaling.
 
 Published to npm as `@rendobar/mcp` and to the [official MCP Registry](https://registry.modelcontextprotocol.io) as `com.rendobar/mcp`.
 
@@ -176,8 +178,11 @@ Beyond that there are purpose-built types for
 [timeline composition](https://rendobar.com/docs/jobs/compose),
 [compression to a size budget](https://rendobar.com/docs/jobs/compress),
 [subtitle burn-in](https://rendobar.com/docs/jobs/captions/burn),
-[animated captions](https://rendobar.com/docs/jobs/captions/animate), and
-[media inspection](https://rendobar.com/docs/jobs/ffprobe).
+[animated captions](https://rendobar.com/docs/jobs/captions/animate),
+[media inspection](https://rendobar.com/docs/jobs/ffprobe),
+[image generation](https://rendobar.com/docs/jobs/image-generate),
+[image editing](https://rendobar.com/docs/jobs/image-edit), and
+[image upscaling](https://rendobar.com/docs/jobs/image-upscale).
 
 Full reference: **[rendobar.com/docs/jobs](https://rendobar.com/docs/jobs)**. Or
 call `list_job_types`, which reads the registry live and is always current. This

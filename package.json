@@ -3,7 +3,7 @@
   "version": "1.8.3",
   "type": "module",
   "license": "MIT",
-  "description": "Rendobar — serverless media processing for AI agents",
+  "description": "Rendobar: serverless media processing for AI agents. FFmpeg, video composition, captions, compression, and image generation.",
   "homepage": "https://rendobar.com/docs/mcp-server",
   "repository": {
     "type": "git",
@@ -15,10 +15,18 @@
   "keywords": [
     "mcp",
     "model-context-protocol",
+    "mcp-server",
     "rendobar",
     "ai",
+    "agent",
+    "claude",
+    "cursor",
     "video",
-    "ffmpeg"
+    "ffmpeg",
+    "image-generation",
+    "captions",
+    "transcode",
+    "video-editing"
   ],
   "author": "Rendobar",
   "bin": {
