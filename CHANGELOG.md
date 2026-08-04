@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.1](https://github.com/rendobar/mcp/compare/v1.9.0...v1.9.1) (2026-08-04)
+
+
+### Bug Fixes
+
+* **mcpb:** point manifest author at the GitHub profile ([c4a6db8](https://github.com/rendobar/mcp/commit/c4a6db8b1e3a35d61f6d2fc221e46fd87b8f3c65))
+
 ## [1.9.0](https://github.com/rendobar/mcp/compare/v1.8.3...v1.9.0) (2026-08-04)
 
 
