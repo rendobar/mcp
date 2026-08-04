@@ -1,0 +1,77 @@
+name: Listing drift
+
+# Directory listings are external mutable state that nothing else watches. The
+# Glama claim reverted on its own between 2026-06 and 2026-08 and sat unclaimed
+# for weeks, with a decaying tool list, because no one thought to re-check a
+# thing that was already done.
+#
+# Weekly, not daily: the registry only changes on release, and a stale listing
+# is a slow problem. Daily runs would train us to ignore the issue.
+
+on:
+  schedule:
+    - cron: "0 9 * * MON"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: listing-drift
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v5
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        with:
+          node-version-file: .nvmrc
+
+      # No install: the script is dependency-free by design so this job cannot
+      # be broken by the lockfile.
+      - name: Check listings
+        id: check
+        run: |
+          set +e
+          OUT=$(node scripts/check-listings.mjs 2>&1)
+          CODE=$?
+          set -e
+          echo "$OUT"
+          {
+            echo "report<<REPORT_EOF"
+            echo "$OUT"
+            echo "REPORT_EOF"
+            echo "drifted=$CODE"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Open or update the drift issue
+        if: steps.check.outputs.drifted != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPORT: ${{ steps.check.outputs.report }}
+        run: |
+          TITLE="Directory listing drift"
+          BODY=$(printf '%s\n\n```\n%s\n```\n\nChecked by `scripts/check-listings.mjs` on %s.\nRe-run after fixing: Actions > Listing drift > Run workflow.' \
+            "A published listing no longer matches what this repo shipped." "$REPORT" "$(date -u +%Y-%m-%d)")
+          EXISTING=$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "$BODY"
+          else
+            gh issue create --title "$TITLE" --body "$BODY"
+          fi
+
+      # Auto-close so a recovered listing does not leave a stale open issue that
+      # everyone learns to scroll past.
+      - name: Close the drift issue once listings agree
+        if: steps.check.outputs.drifted == '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          EXISTING=$(gh issue list --state open --search "Directory listing drift in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            gh issue close "$EXISTING" --comment "Listings agree with the shipped version again. Closed automatically."
+          fi
