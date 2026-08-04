@@ -43,9 +43,54 @@ rmSync(STAGE, { recursive: true, force: true });
 mkdirSync(STAGE, { recursive: true });
 
 cpSync(join(ROOT, "dist"), join(STAGE, "dist"), { recursive: true });
-for (const f of ["manifest.json", "README.md", "LICENSE"]) {
+for (const f of ["README.md", "LICENSE"]) {
   cpSync(join(ROOT, f), join(STAGE, f));
 }
+
+// ── Tool declarations ─────────────────────────────────────────
+// The manifest spec has a `tools` array, and Claude Desktop shows it in the
+// install dialog so a user can see what they are granting before they accept.
+// It is NOT hand-written here: a second copy of the tool list is exactly the
+// drift that put a stale tool count on four public surfaces. The built server
+// is asked instead, so the declaration cannot disagree with what it registers.
+function toolsFromServer() {
+  const req =
+    `${JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "initialize",
+      params: {
+        protocolVersion: "2025-06-18",
+        capabilities: {},
+        clientInfo: { name: "mcpb-build", version: "1" },
+      },
+    })}\n${JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/list" })}\n`;
+
+  const out = execFileSync(process.execPath, [join(ROOT, "dist", "bin.js")], {
+    input: req,
+    encoding: "utf8",
+    stdio: ["pipe", "pipe", "ignore"],
+  });
+
+  for (const line of out.split("\n").filter(Boolean)) {
+    const msg = JSON.parse(line);
+    if (msg.id === 2) return msg.result.tools;
+  }
+  throw new Error("server did not answer tools/list");
+}
+
+const tools = toolsFromServer();
+// First sentence only. The full descriptions run to several hundred characters
+// each, which is right for a model choosing a tool and wrong for an install
+// dialog a human is reading.
+manifest.tools = tools.map((t) => ({
+  name: t.name,
+  description: `${t.description.split(". ")[0].trim()}.`,
+}));
+manifest.tools_generated = false;
+
+writeFileSync(join(STAGE, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+console.log(`  declared ${tools.length} tools from the built server`);
 
 // Production dependencies only. tsup externalises them (dist/bin.js is ~23 KB),
 // so the server genuinely needs node_modules at runtime.

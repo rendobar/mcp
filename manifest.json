@@ -22,6 +22,19 @@
   "privacy_policies": [
     "https://rendobar.com/privacy/"
   ],
+  "license": "MIT",
+  "keywords": [
+    "ffmpeg",
+    "video",
+    "media processing",
+    "transcode",
+    "captions",
+    "subtitles",
+    "compress",
+    "image generation",
+    "ai",
+    "video api"
+  ],
   "server": {
     "type": "node",
     "entry_point": "dist/bin.js",
