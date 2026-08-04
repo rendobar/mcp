@@ -113,6 +113,55 @@ get_job      { "jobId": "job_2fa7", "wait": true }
 exact model id to reach its own controls. Requested dimensions are snapped to
 what the chosen model can actually render.
 
+## The rest of the surface
+
+Four more tools, and the prompts that reach them.
+
+> **You:** What can Rendobar actually do?
+
+```jsonc
+list_job_types {}
+// → { "jobTypes": [ { "type": "compose", "tag": "Compose",
+//                     "summary": "Render a video from a declarative JSON timeline",
+//                     "acceptsMedia": ["video", "image", "audio"] }, ... ],
+//     "guidance": "..." }
+```
+
+Read live from the job registry on every call, which is why nothing in this
+README enumerates job types. A new one appears here without a release.
+
+> **You:** How much credit is left?
+
+```jsonc
+get_account {}
+// → { "balance": "$4.86", "balanceUsd": 4.86, "plan": "free", "isPro": false,
+//     "limits": { "concurrentJobs": 1, "maxFileSize": "500 MB", "jobTimeoutMin": 5 } }
+```
+
+Worth a call before submitting something expensive.
+
+> **You:** What did I run this morning?
+
+```jsonc
+list_jobs { "status": "complete", "limit": 5 }
+// → { "jobs": [ { "id": "job_9f2a", "type": "ffmpeg", "status": "complete",
+//                 "createdAt": "2026-08-04T09:12:00Z", "cost": "$0.01",
+//                 "output": { "url": "https://cdn.rendobar.com/o/job_9f2a/out.mp4" } } ] }
+```
+
+The compact row is enough to find a result you lost. Call `get_job` when you
+need the full output.
+
+> **You:** Stop that one, I picked the wrong file.
+
+```jsonc
+cancel_job { "jobId": "job_9f2a" }
+// → { "id": "job_9f2a", "status": "cancelled" }
+```
+
+Works on `waiting`, `dispatched` and `running` jobs. A running job's upstream
+execution is stopped too, so you are not billed for work you cancelled.
+
 ## Install
 
 Rendobar has two MCP servers. Pick by whether the agent needs your filesystem.
