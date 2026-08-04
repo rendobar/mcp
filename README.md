@@ -221,6 +221,24 @@ DO_NOT_TRACK=1        # or RENDOBAR_TELEMETRY=0
 **The server won't start.** It writes JSON lines to stderr. Check your client's output panel for entries with `level: "error"`.
 </details>
 
+## Privacy Policy
+
+Full policy: **[rendobar.com/privacy](https://rendobar.com/privacy/)**. What this server does specifically:
+
+**Collected.** Your API key, read from the flag, the environment, or the credentials file. Job inputs you pass to a tool, and files you point `upload_file` at, are sent to the Rendobar API to run the job you asked for. Anonymous telemetry covers the tool name, whether it succeeded, how long it took, and the agent's stated intent.
+
+**Not collected.** Tool parameters and responses. File URLs, job configs, and outputs are stripped before any telemetry leaves the process. Telemetry carries no account identity and builds no person profile. Nothing is read from your disk except the file paths you explicitly pass to `upload_file`.
+
+**Storage.** Uploaded inputs and job outputs live in Rendobar's storage and are removed on the retention schedule for your plan. Telemetry goes to PostHog. The server keeps nothing on your machine beyond the credentials file the CLI writes.
+
+**Third parties.** Rendobar (job execution and storage) and PostHog (anonymous telemetry). Opt out of telemetry entirely with `DO_NOT_TRACK=1` or `RENDOBAR_TELEMETRY=0`.
+
+**Contact.** [support@rendobar.com](mailto:support@rendobar.com), or open an issue on this repo.
+
+## Security
+
+Reporting a vulnerability: see [SECURITY.md](./SECURITY.md).
+
 ## Contributing
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md). For AI-assisted development, [AGENTS.md](./AGENTS.md) and [CLAUDE.md](./CLAUDE.md).

@@ -52,7 +52,8 @@
     "test:unit": "vitest run test/unit",
     "test:integration": "vitest run test/integration",
     "smoke": "node dist/bin.js --version",
-    "inspector": "npx -y @modelcontextprotocol/inspector node dist/bin.js"
+    "inspector": "npx -y @modelcontextprotocol/inspector node dist/bin.js",
+    "build:mcpb": "node scripts/build-mcpb.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

@@ -1,0 +1,49 @@
+{
+  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/mcpb/main/dist/mcpb-manifest.schema.json",
+  "manifest_version": "0.3",
+  "name": "rendobar",
+  "display_name": "Rendobar",
+  "version": "1.8.3",
+  "description": "Serverless media processing for AI agents. Run FFmpeg jobs on files from your disk.",
+  "long_description": "Rendobar runs media jobs in the cloud and hands back a hosted URL. This bundle is the local server, so an agent can take a video off your machine, run an FFmpeg command against it on Rendobar's infrastructure, and return the result without you touching a browser.\n\nBeyond raw FFmpeg there are purpose-built job types for timeline composition, compression to a size budget, subtitle burn-in, animated captions, and media inspection. Call `list_job_types` to read the current set live.\n\nThe server starts without an API key so its tools can be listed. Tool calls need a key, which you can set below or write once with `rb login` from the Rendobar CLI.",
+  "author": {
+    "name": "Rendobar",
+    "email": "support@rendobar.com",
+    "url": "https://rendobar.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rendobar/mcp"
+  },
+  "homepage": "https://rendobar.com",
+  "documentation": "https://rendobar.com/docs/mcp-server",
+  "support": "https://github.com/rendobar/mcp/issues",
+  "icon": "icon.png",
+  "privacy_policies": ["https://rendobar.com/privacy/"],
+  "server": {
+    "type": "node",
+    "entry_point": "dist/bin.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/dist/bin.js"],
+      "env": {
+        "RENDOBAR_API_KEY": "${user_config.api_key}"
+      }
+    }
+  },
+  "user_config": {
+    "api_key": {
+      "type": "string",
+      "title": "Rendobar API key",
+      "description": "Starts with rb_. Get one at https://app.rendobar.com under Settings, API Keys. Optional here: the server also reads RENDOBAR_API_KEY or the credentials file written by `rb login`.",
+      "sensitive": true,
+      "required": false
+    }
+  },
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=20.10"
+    }
+  }
+}

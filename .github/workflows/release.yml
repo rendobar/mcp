@@ -158,6 +158,22 @@ jobs:
             gh release create "$REF" --title "$REF" --generate-notes --verify-tag
           fi
 
+      - name: Attach MCPB bundle to the release
+        # The .mcpb is what Claude Desktop one-click-installs, and what the
+        # Anthropic desktop-extension submission points at. Built here rather
+        # than committed: MCPB resolves dependencies at PACK time, so the
+        # archive embeds node_modules and would be a 4 MB binary in git that
+        # goes stale the moment a dependency moves.
+        # Best-effort — npm publish above is the source of truth.
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REF: ${{ steps.tag.outputs.ref }}
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          node scripts/build-mcpb.mjs
+          gh release upload "$REF" "rendobar-mcp-${VERSION}.mcpb" --clobber
+
       - name: Publish to MCP official registry
         # Best-effort — failure here doesn't roll back npm publish.
         # mcp-publisher is a Go binary distributed via GitHub Releases (not npm).
