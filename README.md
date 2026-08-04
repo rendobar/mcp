@@ -97,7 +97,9 @@ Already ran `rb login` with the Rendobar CLI? Drop `--env`. The server finds the
 <details>
 <summary><strong>Claude Desktop, Cursor, Cline, Windsurf</strong></summary>
 
-Same block for all four. Claude Desktop: `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows). Cursor: `~/.cursor/mcp.json`. Windsurf: `~/.codeium/windsurf/mcp_config.json`. Cline: MCP panel → Configure.
+Same block for all four. Claude Desktop: `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows). Cursor: `~/.cursor/mcp.json` on every OS. Windsurf: `~/.codeium/windsurf/mcp_config.json` on every OS. Cline: MCP panel → Configure.
+
+On Linux, use Cursor, Windsurf, Cline, Zed, VS Code or Continue. Claude Desktop has no Linux build, so it is the one client on this list you cannot use there. The server itself runs fine on Linux.
 
 ```json
 {
@@ -158,7 +160,7 @@ env:
 ```
 </details>
 
-Needs Node 20.10 or later. The server checks at startup and exits with a clear message on older versions.
+Runs on **macOS, Linux and Windows**. Every release is tested on all three in CI. There are no native dependencies, so architecture does not matter: x64 and arm64 both work. Needs Node 20.10 or later, and the server checks at startup and exits with a clear message on older versions.
 
 ## Tools
 
