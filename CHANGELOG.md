@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.0](https://github.com/rendobar/mcp/compare/v1.8.3...v1.9.0) (2026-08-04)
+
+
+### Features
+
+* **mcpb:** ship an MCP Bundle for one-click desktop install ([691744d](https://github.com/rendobar/mcp/commit/691744d73d179bea1fb955762ed7b809aba6839c))
+
 ## [1.8.3](https://github.com/rendobar/mcp/compare/v1.8.2...v1.8.3) (2026-07-31)
 
 
