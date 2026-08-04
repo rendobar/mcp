@@ -1,7 +1,7 @@
 import { z, type ZodRawShape } from "zod";
 import { ApiError, WaitTimeoutError, isApiError } from "@rendobar/sdk";
 import { defineTool, type ToolDef } from "./util.js";
-import { getSdk } from "../context.js";
+import { getPublicSdk, getSdk } from "../context.js";
 import type { RendobarContext } from "../context.js";
 
 /**
@@ -514,7 +514,8 @@ const listJobTypesTool = defineTool({
     "quality budget, burned-in and animated captions, and image generation, editing and " +
     "upscaling. The type list is read live from the job registry on every call, so it is " +
     "always current and is never cached in this description. Takes no arguments. Read-only: " +
-    "it never submits or changes a job.",
+    "it never submits or changes a job. Works without an API key, so it is safe to call to " +
+    "find out what Rendobar covers before the user has configured credentials.",
   inputSchema: {} as ZodRawShape,
   outputSchema: {
     jobTypes: z.array(
@@ -534,7 +535,10 @@ const listJobTypesTool = defineTool({
     openWorldHint: true,
   },
   execute: async (_args, ctx) => {
-    const raw = await getSdk(ctx).jobs.types();
+    // GET /jobs/types is public, so this answers without a key. "What can this
+    // do" is the first thing a new user and a directory reviewer ask, and
+    // answering it with an auth wall made the server look like it did nothing.
+    const raw = await getPublicSdk(ctx).jobs.types();
     return {
       jobTypes: raw.map((t) => jobTypeEntrySchema.parse(t)),
       guidance: JOB_TYPES_GUIDANCE,

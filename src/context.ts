@@ -32,13 +32,45 @@ export function createContext(config: ResolvedConfig, logger: Logger): RendobarC
  */
 export function getSdk(ctx: RendobarContext): RendobarClient {
   if (ctx.sdk === null) {
-    throw new ConfigError(
-      `No Rendobar API key configured. Provide one via:\n` +
-        `  1. --api-key=<key> command-line flag\n` +
-        `  2. RENDOBAR_API_KEY environment variable\n` +
-        `  3. credentials file (written by 'rb login' from the Rendobar CLI)\n\n` +
-        `Get an API key at https://app.rendobar.com/settings/api-keys`,
-    );
+    throw new ConfigError(MISSING_KEY_MESSAGE);
   }
   return ctx.sdk;
 }
+
+/**
+ * Resolve a client for an endpoint that does not require auth, preferring the
+ * authed one when the server has it so a configured user's requests still carry
+ * their key (rate limits and analytics are per-org).
+ *
+ * Only for genuinely public endpoints. Everything org-scoped or billable goes
+ * through `getSdk`, and a test pins that split so this cannot quietly widen.
+ */
+export function getPublicSdk(ctx: RendobarContext): RendobarClient {
+  // Not cached on the context: createClient allocates a plain object of closures
+  // with no network, no pool and no handshake, and the caller is about to make an
+  // HTTP request anyway. Caching it would cost a required context field that
+  // every test fixture has to carry, to save nothing measurable.
+  return ctx.sdk ?? createClient({ baseUrl: ctx.config.apiBase });
+}
+
+/**
+ * Renders inside a chat message, not a terminal, so it stays three short lines.
+ *
+ * The routes are self-selecting rather than detected. There is no reliable
+ * signal for how the server was installed: `getClientVersion()` reports the host
+ * (Claude Desktop), not the install, and the same host covers both an extension
+ * with a settings field and a hand-written config without one. A reader knows
+ * which they did, so a conditional sentence beats a wrong instruction, and beats
+ * a manifest-to-config marker that has to be kept in sync to earn it.
+ *
+ * The previous version listed only the flag, the env var and the CLI creds file.
+ * All three are unreachable from Claude Desktop, which is where most installs
+ * now land.
+ */
+const MISSING_KEY_MESSAGE =
+  `No Rendobar API key configured. If you installed the Rendobar extension, paste your key ` +
+  `in its settings. Otherwise set RENDOBAR_API_KEY, or run 'rb login' with the Rendobar CLI.\n\n` +
+  `Get a key at https://app.rendobar.com/settings/api-keys. New accounts start with $5 of ` +
+  `free credit and no card.\n\n` +
+  `If Rendobar does not need to read files off this machine, add https://api.rendobar.com/mcp ` +
+  `as a connector instead and sign in through your browser. There is no key to manage.`;

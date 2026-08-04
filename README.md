@@ -301,7 +301,11 @@ Three sources, first match wins:
 2. `RENDOBAR_API_KEY` environment variable
 3. `~/.config/rendobar/credentials.json` on Unix, `%APPDATA%\rendobar\credentials.json` on Windows, written by `rb login` (Rendobar CLI 1.1+)
 
-The server starts without a key so clients and directories can list its tools, and it makes no network call at startup. Nothing it advertises depends on the registry, so the job type list can never be baked into a build. `list_job_types` reads it live instead. Calls that reach the API return a clear error until a key is set.
+Installed as a `.mcpb` extension, the key goes in the extension's own settings field and none of the three above apply.
+
+The server starts without a key so clients and directories can list its tools, and it makes no network call at startup. Nothing it advertises depends on the registry, so the job type list can never be baked into a build. `list_job_types` reads it live instead, and because `GET /jobs/types` is public it answers without a key at all. Every other tool returns a clear error until a key is set.
+
+If you do not need Rendobar to read files off your machine, the hosted server at `https://api.rendobar.com/mcp` signs you in through the browser and there is no key to manage. The local server exists for disk access, and the key is the price of it.
 
 ## Telemetry
 
