@@ -65,15 +65,12 @@ writeFileSync(
 );
 
 // ── Icon ──────────────────────────────────────────────────────
-// Brand assets live on the CDN (synced from a different repo), same source the
-// registry entry's icons point at. Fetch rather than committing a duplicate.
-const ICON_URL = "https://cdn.rendobar.com/assets/brand/web-app-manifest-512x512.png";
-const iconRes = await fetch(ICON_URL, { signal: AbortSignal.timeout(20_000) });
-if (!iconRes.ok) {
-  console.error(`icon fetch failed (${iconRes.status}): ${ICON_URL}`);
-  process.exit(1);
-}
-writeFileSync(join(STAGE, "icon.png"), Buffer.from(await iconRes.arrayBuffer()));
+// Committed rather than fetched from the brand CDN. Fetching kept the repo free
+// of a duplicated asset, but it put a network call in the build and wrote the
+// response straight to disk, which CodeQL flags as js/http-to-file-access. A
+// 15 KB PNG is not worth either. Refresh from
+// cdn.rendobar.com/assets/brand/web-app-manifest-512x512.png if the mark changes.
+cpSync(join(ROOT, "assets", "icon.png"), join(STAGE, "icon.png"));
 
 // ── Dependencies ──────────────────────────────────────────────
 // npm, not pnpm: pnpm installs a symlink farm, and symlinks do not survive the
