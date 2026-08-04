@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.0](https://github.com/rendobar/mcp/compare/v1.9.1...v1.10.0) (2026-08-04)
+
+
+### Features
+
+* **mcpb:** declare tools, add listing metadata, and cover every tool with an example ([ebac180](https://github.com/rendobar/mcp/commit/ebac180647c624d5be81c7d5cb3bf47d913478fc))
+
 ## [1.9.1](https://github.com/rendobar/mcp/compare/v1.9.0...v1.9.1) (2026-08-04)
 
 
