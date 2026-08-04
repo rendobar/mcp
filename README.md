@@ -30,7 +30,9 @@
 
 `@rendobar/mcp` is the official Model Context Protocol server for [Rendobar](https://rendobar.com), a serverless media processing API. The server runs locally over stdio and reads files straight from your disk, so an AI agent can take a file off your machine, process it on Rendobar's infrastructure, and hand back a hosted URL.
 
-Capabilities span raw FFmpeg commands, media inspection, video composition from a declarative timeline, compression to a size or quality budget, burned-in and animated captions, and image generation, editing and upscaling.
+Rendobar covers both sides of media work. **Deterministic processing** runs raw FFmpeg commands, inspects media, composes video from a declarative timeline, compresses to a size or quality budget, and burns in subtitles. **Model-backed jobs** generate and edit images from a prompt or a written instruction, upscale on a diffusion restoration model, and drive the transcription and keyword highlighting behind animated captions.
+
+The job list grows. This README names families rather than types, and `list_job_types` reads the current set live from the registry on every call.
 
 Published to npm as `@rendobar/mcp` and to the [official MCP Registry](https://registry.modelcontextprotocol.io) as `com.rendobar/mcp`.
 
