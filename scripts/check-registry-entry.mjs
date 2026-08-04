@@ -89,15 +89,37 @@ const urls = [
   ...(server.repository?.url ? [{ what: "repository", url: server.repository.url }] : []),
 ];
 
-for (const { url } of urls) {
-  if (!url.startsWith("https://")) fail(`${url} is not https`);
-}
+// Every URL here comes out of server.json, which Renovate and any PR can edit.
+// Fetching whatever that file names would let a branch point CI at an arbitrary
+// host, so the host is checked against a fixed set rather than just the scheme.
+// This is also what CodeQL's js/file-access-to-http flags: file contents
+// reaching an outbound request without validation.
+const ALLOWED_HOSTS = new Set(["rendobar.com", "cdn.rendobar.com", "github.com"]);
+
+const safeUrls = urls.filter(({ url }) => {
+  if (!url.startsWith("https://")) {
+    fail(`${url} is not https`);
+    return false;
+  }
+  let hostname;
+  try {
+    ({ hostname } = new URL(url));
+  } catch {
+    fail(`${url} is not a parseable URL`);
+    return false;
+  }
+  if (!ALLOWED_HOSTS.has(hostname)) {
+    fail(`${url} points at ${hostname}, which is not a Rendobar-controlled host`);
+    return false;
+  }
+  return true;
+});
 
 if (skipNetwork) {
-  console.log(`  --  skipping liveness for ${urls.length} URL(s) (--skip-network)`);
+  console.log(`  --  skipping liveness for ${safeUrls.length} URL(s) (--skip-network)`);
 } else {
   const results = await Promise.all(
-    urls.map(async ({ what, url }) => {
+    safeUrls.map(async ({ what, url }) => {
       try {
         // Every request needs its own deadline. Without one a hung TLS
         // handshake stalls the whole job until the runner's 6h cap.
@@ -133,4 +155,4 @@ if (failures.length > 0) {
   process.exit(1);
 }
 
-console.log(`\nserver.json OK (${urls.length} URLs checked)`);
+console.log(`\nserver.json OK (${safeUrls.length} URLs checked)`);

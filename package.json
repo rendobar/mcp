@@ -3,7 +3,7 @@
   "version": "1.8.3",
   "type": "module",
   "license": "MIT",
-  "description": "Rendobar — serverless media processing for AI agents",
+  "description": "Rendobar: serverless media processing and generation for AI agents. Transform video, audio and images with FFmpeg, compose from a timeline, burn captions and compress to a budget. Generate and edit images from a text prompt, and upscale on a diffusion model.",
   "homepage": "https://rendobar.com/docs/mcp-server",
   "repository": {
     "type": "git",
@@ -15,10 +15,18 @@
   "keywords": [
     "mcp",
     "model-context-protocol",
+    "mcp-server",
     "rendobar",
     "ai",
+    "agent",
+    "claude",
+    "cursor",
     "video",
-    "ffmpeg"
+    "ffmpeg",
+    "image-generation",
+    "captions",
+    "transcode",
+    "video-editing"
   ],
   "author": "Rendobar",
   "bin": {
@@ -52,7 +60,8 @@
     "test:unit": "vitest run test/unit",
     "test:integration": "vitest run test/integration",
     "smoke": "node dist/bin.js --version",
-    "inspector": "npx -y @modelcontextprotocol/inspector node dist/bin.js"
+    "inspector": "npx -y @modelcontextprotocol/inspector node dist/bin.js",
+    "build:mcpb": "node scripts/build-mcpb.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

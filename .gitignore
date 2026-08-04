@@ -34,3 +34,7 @@ npm-debug.log*
 pnpm-debug.log*
 
 .claude/
+
+# MCPB bundle build output
+.mcpb-build/
+*.mcpb

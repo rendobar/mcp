@@ -28,7 +28,15 @@
   <img src="https://img.shields.io/node/v/@rendobar/mcp?style=flat-square&color=059669" alt="Node version">
 </p>
 
-`@rendobar/mcp` is the official Model Context Protocol server for [Rendobar](https://rendobar.com), a serverless media processing API. The server runs locally over stdio and reads files straight from your disk, so an AI agent can take a video off your machine, run an FFmpeg command against it on Rendobar's infrastructure, and hand back a hosted URL. Purpose-built job types cover timeline composition, compression to a size budget, subtitle burn-in, animated captions, and media inspection.
+`@rendobar/mcp` is the official Model Context Protocol server for [Rendobar](https://rendobar.com), a serverless media processing API. The server runs locally over stdio and reads files straight from your disk, so an AI agent can take a file off your machine, process it on Rendobar's infrastructure, and hand back a hosted URL.
+
+Rendobar covers both sides of media work.
+
+**Transform what you have.** Run any FFmpeg command against video, audio or images the way you would write it locally. Inspect a file and get a normalized summary plus the full ffprobe report. Compose video from a declarative JSON timeline. Compress to a target size or quality, where the encoder searches candidate encodes and returns the smallest file that clears the bar. Burn in subtitles from SRT, VTT or ASS, or let it transcribe when none is given.
+
+**Generate what you do not.** Create an image from a text prompt on hosted open-weight diffusion models. Edit up to four reference images from a written instruction, no masks and no coordinates. Upscale on a one-step diffusion restoration model that reconstructs detail rather than only sharpening. The same model-backed layer drives the transcription and keyword highlighting behind animated captions, so this is not an image-only capability.
+
+The job list grows over time, so this README names families rather than types. `list_job_types` reads the current set live from the registry on every call.
 
 Published to npm as `@rendobar/mcp` and to the [official MCP Registry](https://registry.modelcontextprotocol.io) as `com.rendobar/mcp`.
 
@@ -176,8 +184,11 @@ Beyond that there are purpose-built types for
 [timeline composition](https://rendobar.com/docs/jobs/compose),
 [compression to a size budget](https://rendobar.com/docs/jobs/compress),
 [subtitle burn-in](https://rendobar.com/docs/jobs/captions/burn),
-[animated captions](https://rendobar.com/docs/jobs/captions/animate), and
-[media inspection](https://rendobar.com/docs/jobs/ffprobe).
+[animated captions](https://rendobar.com/docs/jobs/captions/animate),
+[media inspection](https://rendobar.com/docs/jobs/ffprobe),
+[image generation](https://rendobar.com/docs/jobs/image-generate),
+[image editing](https://rendobar.com/docs/jobs/image-edit), and
+[image upscaling](https://rendobar.com/docs/jobs/image-upscale).
 
 Full reference: **[rendobar.com/docs/jobs](https://rendobar.com/docs/jobs)**. Or
 call `list_job_types`, which reads the registry live and is always current. This
@@ -220,6 +231,24 @@ DO_NOT_TRACK=1        # or RENDOBAR_TELEMETRY=0
 
 **The server won't start.** It writes JSON lines to stderr. Check your client's output panel for entries with `level: "error"`.
 </details>
+
+## Privacy Policy
+
+Full policy: **[rendobar.com/privacy](https://rendobar.com/privacy/)**. What this server does specifically:
+
+**Collected.** Your API key, read from the flag, the environment, or the credentials file. Job inputs you pass to a tool, and files you point `upload_file` at, are sent to the Rendobar API to run the job you asked for. Anonymous telemetry covers the tool name, whether it succeeded, how long it took, and the agent's stated intent.
+
+**Not collected.** Tool parameters and responses. File URLs, job configs, and outputs are stripped before any telemetry leaves the process. Telemetry carries no account identity and builds no person profile. Nothing is read from your disk except the file paths you explicitly pass to `upload_file`.
+
+**Storage.** Uploaded inputs and job outputs live in Rendobar's storage and are removed on the retention schedule for your plan. Telemetry goes to PostHog. The server keeps nothing on your machine beyond the credentials file the CLI writes.
+
+**Third parties.** Rendobar (job execution and storage) and PostHog (anonymous telemetry). Opt out of telemetry entirely with `DO_NOT_TRACK=1` or `RENDOBAR_TELEMETRY=0`.
+
+**Contact.** [support@rendobar.com](mailto:support@rendobar.com), or open an issue on this repo.
+
+## Security
+
+Reporting a vulnerability: see [SECURITY.md](./SECURITY.md).
 
 ## Contributing
 
