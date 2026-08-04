@@ -69,6 +69,50 @@ get_job      { "jobId": "job_9f2a", "wait": true }
 The agent writes the filter. Rendobar runs it. Nothing gets installed on your
 machine, and `-c:v copy` means the video stream is never re-encoded.
 
+## Two more things to ask for
+
+**Hit a size budget.**
+
+> **You:** Get `demo.mov` under 25 MB so I can email it.
+
+```jsonc
+upload_file  { "path": "~/recordings/demo.mov" }
+// → { "downloadUrl": "https://cdn.rendobar.com/u/7c1e/demo.mov", "sizeBytes": 251658240 }
+
+submit_job   { "type": "compress.target",
+               "inputs": { "source": "https://cdn.rendobar.com/u/7c1e/demo.mov" },
+               "params": { "for": "web", "target": { "maxSize": "25MB" } } }
+// → { "jobId": "job_4b8d", "status": "waiting" }
+
+get_job      { "jobId": "job_4b8d", "wait": true }
+// → complete · https://cdn.rendobar.com/o/job_4b8d/out.mp4 · 23.8 MB
+```
+
+You give it the ceiling, not a bitrate. The encoder searches candidate encodes
+and returns the smallest file that still clears the quality bar, so you are not
+guessing at CRF values to land under a mail server's limit.
+
+**Generate an image.**
+
+> **You:** Make a 1920x1080 title card for a video about deep sea diving.
+
+```jsonc
+submit_job   { "type": "image.generate",
+               "inputs": {},
+               "params": { "model": "standard",
+                           "prompt": "Title card for a deep sea diving documentary. Shafts of light through deep blue water, small diver silhouette, empty space across the upper third for a title.",
+                           "width": 1920, "height": 1080 } }
+// → { "jobId": "job_2fa7", "status": "waiting" }
+
+get_job      { "jobId": "job_2fa7", "wait": true }
+// → complete · https://cdn.rendobar.com/o/job_2fa7/out.png
+```
+
+`inputs` is empty because nothing is being transformed. Ask for a tier
+(`economy`, `standard`, `premium`) and the platform picks the model, or pin an
+exact model id to reach its own controls. Requested dimensions are snapped to
+what the chosen model can actually render.
+
 ## Install
 
 Rendobar has two MCP servers. Pick by whether the agent needs your filesystem.
