@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.0](https://github.com/rendobar/mcp/compare/v1.10.0...v1.11.0) (2026-08-04)
+
+
+### Features
+
+* **tools:** answer list_job_types without an API key ([#116](https://github.com/rendobar/mcp/issues/116)) ([57fec1b](https://github.com/rendobar/mcp/commit/57fec1b4bf3e91485389273d0414b53665b9fa4c))
+
 ## [1.10.0](https://github.com/rendobar/mcp/compare/v1.9.1...v1.10.0) (2026-08-04)
 
 
