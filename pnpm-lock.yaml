@@ -16,7 +16,7 @@ importers:
         version: 1.30.0(zod@4.4.3)
       '@posthog/mcp':
         specifier: ^0.10.0
-        version: 0.10.1(@modelcontextprotocol/sdk@1.30.0(zod@4.4.3))(posthog-node@5.47.3)
+        version: 0.10.8(@modelcontextprotocol/sdk@1.30.0(zod@4.4.3))(posthog-node@5.47.3)
       '@rendobar/sdk':
         specifier: ^5.0.0
         version: 5.2.0
@@ -365,24 +365,24 @@ packages:
   '@oxc-project/types@0.142.0':
     resolution: {integrity: sha512-7W+2q5AKQVU36fkaryontrHn3YDt1RyUYXatw9i5H8ocYe2sPKSFB6eS8WNPeRKiN1qAWWZUPm7gwFzJGrccqQ==}
 
-  '@posthog/core@1.45.1':
-    resolution: {integrity: sha512-tLtvzomavb2PPWdGYKsusyIzIeL2Px47v348Smibkay7sMy/83TyPk+Ptsp2NdeOgJsbuwSxWkR2+XA0aSCAaA==}
-
   '@posthog/core@1.46.1':
     resolution: {integrity: sha512-EoCFduRkvrg9E5ylMi4QnZCjlAdRJCq6tJouWfngBVR79XSI4iPvIWYA+CdzokAjk+TfSVBFVJ++4Im3r+T0Dg==}
 
-  '@posthog/mcp@0.10.1':
-    resolution: {integrity: sha512-TMe6BvDCzMMaWP30jMuJKWDbqrDZ6xLjknzQFGXkaD5EPiq4EcU8FImjZBSZ6l1ipQdnPmkx2Z+R4bKhlx9Z6A==}
+  '@posthog/core@1.46.9':
+    resolution: {integrity: sha512-EXO6y5ih+jBkTCpUCuYgQmajuDZuvy6vMvflkub6pLQyi0GPlCPWVSvZZkOeQw9e2MxoD5GteeGCt9R8+UJ/yQ==}
+
+  '@posthog/mcp@0.10.8':
+    resolution: {integrity: sha512-p3beWalPLashncxN1Q5XCrQgEn87JDToGTLBL2ThLMTREgxllz2yNEbnjpAfBlKYCP/RII9EYJ6UEL8IHT6hNQ==}
     engines: {node: ^20.20.0 || >=22.22.0}
     peerDependencies:
       '@modelcontextprotocol/sdk': '>=1.26.0'
       posthog-node: ^5.0.0
 
-  '@posthog/types@1.398.0':
-    resolution: {integrity: sha512-sJMkl4k+u8yS/0fjHsKqE9xTdsAh30a2WvgChiptellnVoE0e8QJKFgqOMD2sk8FaEArPdeFklAhXvmENAt3Sg==}
-
   '@posthog/types@1.399.0':
     resolution: {integrity: sha512-/WDwBzqIPko8VJ1B+0rlso2XQEz9+2sqtsY9Tqy3p1GhgTqsFakcz/PmMpAnA321LTEZVRcO6x5hAwABV4yrDw==}
+
+  '@posthog/types@1.402.2':
+    resolution: {integrity: sha512-ZZTiS4dLwF4/D0YTzS3gGSLFnhuNOY5yu4d9VGS9trGe5GW6FjIXo20p18K5BPW2RZSYSld8sdnSAY3AUXleUQ==}
 
   '@rendobar/sdk@5.2.0':
     resolution: {integrity: sha512-mJvkZ4tz99Y3DgiIYFPiKd/arz5WrPRopneNeCZDtOvqG2ApUWfmMXn7/9zRwJfSiIhLJ+Mlr7DR0i4meb8S7A==}
@@ -2108,23 +2108,23 @@ snapshots:
 
   '@oxc-project/types@0.142.0': {}
 
-  '@posthog/core@1.45.1':
-    dependencies:
-      '@posthog/types': 1.398.0
-
   '@posthog/core@1.46.1':
     dependencies:
       '@posthog/types': 1.399.0
 
-  '@posthog/mcp@0.10.1(@modelcontextprotocol/sdk@1.30.0(zod@4.4.3))(posthog-node@5.47.3)':
+  '@posthog/core@1.46.9':
+    dependencies:
+      '@posthog/types': 1.402.2
+
+  '@posthog/mcp@0.10.8(@modelcontextprotocol/sdk@1.30.0(zod@4.4.3))(posthog-node@5.47.3)':
     dependencies:
       '@modelcontextprotocol/sdk': 1.30.0(zod@4.4.3)
-      '@posthog/core': 1.45.1
+      '@posthog/core': 1.46.9
       posthog-node: 5.47.3
 
-  '@posthog/types@1.398.0': {}
-
   '@posthog/types@1.399.0': {}
+
+  '@posthog/types@1.402.2': {}
 
   '@rendobar/sdk@5.2.0':
     dependencies:
