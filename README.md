@@ -135,7 +135,7 @@ README enumerates job types. A new one appears here without a release.
 ```jsonc
 get_account {}
 // → { "balance": "$4.86", "balanceUsd": 4.86, "plan": "free", "isPro": false,
-//     "limits": { "concurrentJobs": 1, "maxFileSize": "500 MB", "jobTimeoutMin": 5 } }
+//     "limits": { "concurrentJobs": 1, "maxFileSize": "500 MB", "jobTimeoutMin": 60 } }
 ```
 
 Worth a call before submitting something expensive.
