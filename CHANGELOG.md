@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.1](https://github.com/rendobar/mcp/compare/v1.11.0...v1.11.1) (2026-09-01)
+
+
+### Bug Fixes
+
+* identify this server as mcp, not sdk ([#141](https://github.com/rendobar/mcp/issues/141)) ([676728f](https://github.com/rendobar/mcp/commit/676728f6ab53691a05033696ca23a571dd12f1fd))
+
 ## [1.11.0](https://github.com/rendobar/mcp/compare/v1.10.0...v1.11.0) (2026-08-04)
 
 
