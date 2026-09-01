@@ -4,9 +4,8 @@ import path from "node:path";
 import { createLogger } from "./logger.js";
 import { parseConfig, ConfigError, type ResolvedConfig } from "./config.js";
 import { createRendobarMcpServer } from "./server.js";
+import { VERSION } from "./version.js";
 
-declare const __PACKAGE_VERSION__: string;
-const VERSION = typeof __PACKAGE_VERSION__ === "string" ? __PACKAGE_VERSION__ : "0.0.0-dev";
 
 const HELP_TEXT = `@rendobar/mcp v${VERSION}
 Local stdio Model Context Protocol server for Rendobar.

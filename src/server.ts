@@ -5,9 +5,8 @@ import { registerTools } from "./tools/index.js";
 import { setupMcpAnalytics } from "./telemetry.js";
 import type { Logger } from "./logger.js";
 import type { ResolvedConfig } from "./config.js";
+import { VERSION } from "./version.js";
 
-declare const __PACKAGE_VERSION__: string;
-const VERSION = typeof __PACKAGE_VERSION__ === "string" ? __PACKAGE_VERSION__ : "0.0.0-dev";
 
 export interface CreateServerOptions {
   config: ResolvedConfig;

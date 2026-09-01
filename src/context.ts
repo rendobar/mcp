@@ -2,6 +2,7 @@ import { createClient, type RendobarClient } from "@rendobar/sdk";
 import { ConfigError } from "./config.js";
 import type { Logger } from "./logger.js";
 import type { ResolvedConfig } from "./config.js";
+import { VERSION } from "./version.js";
 
 export interface RendobarContext {
   logger: Logger;
@@ -20,7 +21,14 @@ export function createContext(config: ResolvedConfig, logger: Logger): RendobarC
   const sdk =
     config.apiKey === null
       ? null
-      : createClient({ apiKey: config.apiKey, baseUrl: config.apiBase });
+      : createClient({
+          apiKey: config.apiKey,
+          baseUrl: config.apiBase,
+          // Without this the SDK labels every call "sdk", so traffic from this
+          // server was indistinguishable from somebody using the SDK directly
+          // and never showed up as MCP in usage or in a bug report.
+          client: `mcp/${VERSION}`,
+        });
   return { logger, sdk, config, cachedMaxFileSize: null };
 }
 
