@@ -14,3 +14,11 @@ overrides:
 allowBuilds:
   esbuild: true
   msw: true
+
+# pnpm 12 rejects any lockfile entry published inside a 24h window
+# (ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION). That gate is right for third-party
+# packages and stays on. @rendobar/* is our own scope, published with npm
+# provenance from a tagged CI release, so the cooldown buys nothing and only
+# makes same-day internal bumps un-mergeable until the next morning.
+minimumReleaseAgeExclude:
+  - "@rendobar/*"

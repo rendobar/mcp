@@ -10,6 +10,7 @@
   "commitMessageAction": "bump",
   "schedule": ["before 6am on Monday"],
   "timezone": "UTC",
+  "minimumReleaseAge": "1 day",
   "packageRules": [
     {
       "matchUpdateTypes": ["patch", "minor"],
@@ -40,7 +41,9 @@
       "schedule": ["at any time"],
       "automerge": true,
       "platformAutomerge": true,
-      "groupName": "rendobar internal deps"
+      "groupName": "rendobar internal deps",
+      "minimumReleaseAge": null,
+      "description": "First-party scope. pnpm's 24h supply-chain cooldown is excluded for @rendobar/* in pnpm-workspace.yaml, so these bumps are mergeable the moment they are published - no reason to hold the PR back."
     }
   ],
   "dependencyDashboard": true,
