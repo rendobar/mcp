@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.2](https://github.com/rendobar/mcp/compare/v1.11.1...v1.11.2) (2026-09-06)
+
+
+### Bug Fixes
+
+* **deps:** bump dependency @posthog/mcp to ^0.13.0 ([#123](https://github.com/rendobar/mcp/issues/123)) ([53e75b5](https://github.com/rendobar/mcp/commit/53e75b581a5f5b4b2dd61df44e84dbe8f82f205f))
+
 ## [1.11.1](https://github.com/rendobar/mcp/compare/v1.11.0...v1.11.1) (2026-09-01)
 
 
