@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.3](https://github.com/rendobar/mcp/compare/v1.11.2...v1.11.3) (2026-09-06)
+
+
+### Bug Fixes
+
+* **ci:** exempt first-party @rendobar/* from pnpm's release-age gate ([#146](https://github.com/rendobar/mcp/issues/146)) ([7f174d3](https://github.com/rendobar/mcp/commit/7f174d34b71660c8a29e269dd830ace243462982))
+
 ## [1.11.2](https://github.com/rendobar/mcp/compare/v1.11.1...v1.11.2) (2026-09-06)
 
 
