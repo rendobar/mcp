@@ -19,7 +19,7 @@ importers:
         version: 0.13.0(@modelcontextprotocol/sdk@1.30.0(zod@4.5.4))(posthog-node@5.51.6)
       '@rendobar/sdk':
         specifier: ^5.0.0
-        version: 5.10.1
+        version: 5.11.0
       posthog-node:
         specifier: ^5.45.2
         version: 5.51.6
@@ -383,8 +383,8 @@ packages:
   '@posthog/types@1.409.0':
     resolution: {integrity: sha512-239umoaZVb2GBaXeEyJpwFvjhrrChJH8NHCwiao23EBSu3NA6EN0MTMoaHSmMEf4yjiXEFFoYJA6FjJAXF5HGA==}
 
-  '@rendobar/sdk@5.10.1':
-    resolution: {integrity: sha512-AAmzZB7Equlc7oNtpXAyoOGepXPfIREDdODV1FNTInIDqRjOJ+wmGk8OFI1KhHqJd/WicsEmPrWIpX9PKhCWTA==}
+  '@rendobar/sdk@5.11.0':
+    resolution: {integrity: sha512-4mHdXTIcj9vgB2z7IebSlU0Q+rUrCGfpBIYi0T4UIkI531SLmCgiGGQxH05T4RlTKdX8O0b9azjBQjlHI52H6g==}
     engines: {node: '>=18'}
 
   '@rolldown/binding-android-arm-eabi@1.2.5':
@@ -2130,7 +2130,7 @@ snapshots:
 
   '@posthog/types@1.409.0': {}
 
-  '@rendobar/sdk@5.10.1':
+  '@rendobar/sdk@5.11.0':
     dependencies:
       partysocket: 1.3.0
     transitivePeerDependencies:
