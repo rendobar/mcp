@@ -18,6 +18,7 @@ import { accountTools } from "../../../src/tools/account.js";
 import { uploadTools } from "../../../src/tools/uploads.js";
 import { ConfigError } from "../../../src/config.js";
 import type { RendobarContext } from "../../../src/context.js";
+import { fakeLogger, NO_EXTRA, pickTool } from "./helpers.js";
 
 const JOB_TYPES = [
   { type: "ffmpeg", tag: "FFmpeg", summary: "Run any FFmpeg command", acceptsMedia: ["video", "audio", "image"] },
@@ -33,14 +34,6 @@ vi.mock("@rendobar/sdk", async (importOriginal) => ({
   createClient: vi.fn(() => ({ jobs: { types: typesMock } })),
 }));
 
-const fakeLogger = () => ({
-  debug: vi.fn(),
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-  restoreConsole: vi.fn(),
-});
-
 /** A server booted with no key from any source: no flag, no env, no creds file. */
 const keylessCtx = (): RendobarContext => ({
   logger: fakeLogger(),
@@ -49,16 +42,8 @@ const keylessCtx = (): RendobarContext => ({
   cachedMaxFileSize: null,
 });
 
-// `extra` is the MCP request handler context. No tool under test reads it, and
-// the existing tool tests pass the same placeholder.
-const NO_EXTRA = {} as never;
-
 const allTools = [...jobTools(), ...accountTools(), ...uploadTools()];
-const toolNamed = (name: string) => {
-  const t = allTools.find((x) => x.name === name);
-  if (!t) throw new Error(`no tool named ${name}`);
-  return t;
-};
+const toolNamed = (name: string) => pickTool(allTools, name);
 
 describe("without an API key", () => {
   it("list_job_types still answers", async () => {

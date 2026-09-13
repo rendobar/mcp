@@ -18,7 +18,7 @@ importers:
         specifier: ^0.13.0
         version: 0.13.0(@modelcontextprotocol/sdk@1.30.0(zod@4.5.4))(posthog-node@5.51.6)
       '@rendobar/sdk':
-        specifier: ^5.0.0
+        specifier: ^5.11.0
         version: 5.11.0
       posthog-node:
         specifier: ^5.45.2

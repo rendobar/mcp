@@ -1,22 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { z } from "zod";
 import { jobTools } from "../../../src/tools/jobs.js";
-import type { RendobarContext } from "../../../src/context.js";
-
-const fakeLogger = () => ({
-  debug: vi.fn(),
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-  restoreConsole: vi.fn(),
-});
-
-const ctx = (sdk: Record<string, unknown>): RendobarContext => ({
-  logger: fakeLogger(),
-  sdk: sdk as never,
-  config: { apiKey: "rb_x", apiBase: "https://api.rendobar.com", logLevel: "info" as const },
-  cachedMaxFileSize: null,
-});
+import { ctx } from "./helpers.js";
 
 describe("list_jobs", () => {
   it("surfaces file url + cost on complete; null cost and no output otherwise", async () => {
