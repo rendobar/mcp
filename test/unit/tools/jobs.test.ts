@@ -613,19 +613,19 @@ describe("submit_job destinations", () => {
 
   it("forwards destinations to POST /jobs unchanged", async () => {
     const create = created();
-    await submitJob().execute({ ...base, destinations: ["storage://prod-media/exports"] } as never, ctx({ jobs: { create } }), NO_EXTRA);
+    await submitJob().execute({ ...base, destinations: ["storage://prod-media/exports"] }, ctx({ jobs: { create } }), NO_EXTRA);
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ destinations: ["storage://prod-media/exports"] }));
   });
 
   it("leaves destinations off when the caller names none, so the org default still applies", async () => {
     const create = created();
-    await submitJob().execute(base as never, ctx({ jobs: { create } }), NO_EXTRA);
+    await submitJob().execute(base, ctx({ jobs: { create } }), NO_EXTRA);
     expect(create.mock.calls[0]?.[0]).not.toHaveProperty("destinations");
   });
 
   it("passes an empty list through, which keeps the output off every bucket", async () => {
     const create = created();
-    await submitJob().execute({ ...base, destinations: [] } as never, ctx({ jobs: { create } }), NO_EXTRA);
+    await submitJob().execute({ ...base, destinations: [] }, ctx({ jobs: { create } }), NO_EXTRA);
     expect(create.mock.calls[0]?.[0]).toHaveProperty("destinations", []);
   });
 
