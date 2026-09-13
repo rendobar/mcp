@@ -115,7 +115,7 @@ what the chosen model can actually render.
 
 ## The rest of the surface
 
-Four more tools, and the prompts that reach them.
+Six more tools, and the prompts that reach them.
 
 > **You:** What can Rendobar actually do?
 
@@ -161,6 +161,32 @@ cancel_job { "jobId": "job_9f2a" }
 
 Works on `waiting`, `dispatched` and `running` jobs. A running job's upstream
 execution is stopped too, so you are not billed for work you cancelled.
+
+> **You:** Where can this land once it's done?
+
+```jsonc
+list_storage {}
+// → { "storage": [ { "id": "prod-media", "provider": "s3", "bucket": "acme-prod-media",
+//                     "access": "deliver", "defaultDestination": true, "pending": false } ],
+//     "note": "..." }
+```
+
+The buckets connected on the Storage page, without the endpoint or region an
+agent has no use for. Use the id in `destinations`, or as
+`storage://<id>/<path>` in any input.
+
+> **You:** What's already in the archive bucket?
+
+```jsonc
+list_storage_files { "storageId": "raw-archive" }
+// → { "folders": [ { "prefix": "2026/", "uri": "storage://raw-archive/2026/" } ],
+//     "files": [ { "key": "notes.txt", "size": 800, "lastModified": "2026-09-01T00:00:00.000Z",
+//                  "uri": "storage://raw-archive/notes.txt" } ],
+//     "cursor": null }
+```
+
+Every entry carries its own `storage://` uri, ready to hand straight to
+`submit_job`. Pass a folder's prefix to go one level deeper.
 
 ## Install
 
@@ -297,7 +323,7 @@ A `submit_job` input can point at a previous job's output, so a multi-step edit 
 
 ### Your own storage
 
-A file in a bucket connected on the [Storage page](https://app.rendobar.com/storage) is an input as `storage://<id>/<path>`. Add `destinations: ["storage://<id>"]` to `submit_job` and the output is written back to the bucket once the job completes, reported per bucket in `get_job`'s `deliveries`. `list_storage` gives the ids and `list_storage_files` the paths. An API key made before September 13, 2026 cannot read storage, so create a new one.
+A file in a bucket connected on the [Storage page](https://app.rendobar.com/storage) is an input as `storage://<id>/<path>`. Add `destinations: ["storage://<id>"]` to `submit_job` and the output is written back to the bucket once the job completes, reported per bucket in `get_job`'s `deliveries`. `list_storage` gives the ids and `list_storage_files` the paths. An API key made before September 13, 2026 cannot read storage, so create a new one. Credentials saved by `rb login` need a fresh `rb login` once `rb` asks for storage access.
 
 ## Authentication
 
