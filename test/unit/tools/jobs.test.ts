@@ -633,3 +633,43 @@ describe("submit_job destinations", () => {
     expect(submitJob().description).toContain("list_storage");
   });
 });
+
+describe("get_job deliveries", () => {
+  const getJob = () => pickTool(jobTools(), "get_job");
+  const completeJob = (extra: Record<string, unknown>) => ({
+    id: "job_1",
+    type: "ffmpeg",
+    status: "complete",
+    createdAt: 1_000,
+    completedAt: 4_000,
+    steps: [],
+    output: { data: null, file: null, files: [], expiresAt: null },
+    ...extra,
+  });
+  const read = (job: Record<string, unknown>) =>
+    getJob().execute({ jobId: "job_1" }, ctx({ jobs: { get: vi.fn(async () => job) } }), NO_EXTRA);
+
+  it("reports each destination's outcome", async () => {
+    const deliveries = [
+      { storageId: "prod-media", status: "delivered", path: "exports/clip.mp4", url: "https://media.example.com/exports/clip.mp4" },
+      { storageId: "archive", status: "failed", reason: "destination_denied" },
+      { storageId: "backup", status: "pending" },
+    ];
+    expect(await read(completeJob({ deliveries }))).toMatchObject({ status: "complete", deliveries });
+  });
+
+  it("adds no deliveries key for a job that named no destinations", async () => {
+    expect(await read(completeJob({}))).not.toHaveProperty("deliveries");
+  });
+
+  it("keeps the well-formed deliveries when one entry is not", async () => {
+    const result = await read(completeJob({ deliveries: [{ storageId: "prod-media", status: "delivered" }, { status: 7 }] }));
+    expect(result).toMatchObject({ deliveries: [{ storageId: "prod-media", status: "delivered" }] });
+  });
+
+  it("drops a deliveries field that is not a list without losing the rest of the job", async () => {
+    const result = await read(completeJob({ deliveries: "not a list", cost: { amount: 1, currency: "USD", formatted: "$0.01" } }));
+    expect(result).not.toHaveProperty("deliveries");
+    expect(result).toMatchObject({ cost: "$0.01" });
+  });
+});

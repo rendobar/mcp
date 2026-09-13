@@ -68,6 +68,31 @@ function parseJobShape(job: unknown): ParsedJobShape {
   return parsed.success ? parsed.data : {};
 }
 
+const deliverySchema = z.object({
+  storageId: z.string(),
+  status: z.string().describe("Open set: pending | delivered | failed"),
+  path: z.string().optional().describe("Object key written in the bucket"),
+  url: z.string().optional().describe("Where to fetch the delivered file"),
+  reason: z.string().optional().describe("Why a delivery failed, as the API's reason code"),
+  renamed: z.boolean().optional().describe("The name was taken, so the job id was appended"),
+});
+
+type Delivery = z.infer<typeof deliverySchema>;
+
+/**
+ * Parsed apart from jobShapeSchema, entry by entry: a delivery the API reshapes
+ * must cost the agent neither the job's output and cost nor the other deliveries,
+ * which is what one failed safeParse over the whole list would do.
+ */
+function parseDeliveries(job: unknown): Delivery[] {
+  const list = z.object({ deliveries: z.array(z.unknown()) }).safeParse(job);
+  if (!list.success) return [];
+  return list.data.deliveries.flatMap((raw) => {
+    const delivery = deliverySchema.safeParse(raw);
+    return delivery.success ? [delivery.data] : [];
+  });
+}
+
 /**
  * Reshape the unified `output` to the compact form agents read: pass `data`
  * through when present (the computed answer), surface the headline `file` (url +
@@ -205,7 +230,8 @@ const getJobTool = defineTool({
   name: "get_job",
   title: "Get Rendobar Job",
   description:
-    "Check status and get results of a submitted job. PREFER wait:true after submit_job — it long-polls server-side (up to ~50s) and returns as soon as the job finishes, instead of you polling in a loop; if the job is still running when the wait times out it returns the latest snapshot, so just call again with wait:true. Returns progress, current step, cost, and output when done. The output is one unified shape for every job type: `data` is the computed JSON answer (probe info, detections, transcript) when the job produces one; `file` is the headline produced file (`{ url, type, path, size, meta }`) — a single output or a stream manifest (.m3u8/.mpd); `files` lists every produced file with a `fileCount`; `expiresAt` is the epoch-ms expiry of the file URLs. Data-only jobs have `file` null and no files; file-only jobs have no `data`. Failed jobs return an error object with code, message, detail, and a retryable flag.",
+    "Check status and get results of a submitted job. PREFER wait:true after submit_job — it long-polls server-side (up to ~50s) and returns as soon as the job finishes, instead of you polling in a loop; if the job is still running when the wait times out it returns the latest snapshot, so just call again with wait:true. Returns progress, current step, cost, and output when done. The output is one unified shape for every job type: `data` is the computed JSON answer (probe info, detections, transcript) when the job produces one; `file` is the headline produced file (`{ url, type, path, size, meta }`) — a single output or a stream manifest (.m3u8/.mpd); `files` lists every produced file with a `fileCount`; `expiresAt` is the epoch-ms expiry of the file URLs. Data-only jobs have `file` null and no files; file-only jobs have no `data`. Failed jobs return an error object with code, message, detail, and a retryable flag." +
+    " When the job named destinations, deliveries reports each bucket write. Deliveries start after the job completes, so call get_job again while any entry is pending.",
   inputSchema: {
     jobId: z.string().describe("Job ID returned by submit_job (e.g. 'job_abc123')"),
     wait: z
@@ -227,6 +253,10 @@ const getJobTool = defineTool({
     durationMs: z.number().optional(),
     output: outputShapeSchema.optional().describe("Present when complete"),
     error: jobErrorSchema.optional().describe("Present when failed"),
+    deliveries: z
+      .array(deliverySchema)
+      .optional()
+      .describe("One entry per destination, present when the job named destinations"),
   },
   annotations: {
     readOnlyHint: true,
@@ -305,6 +335,9 @@ const getJobTool = defineTool({
         retryable: shape.error.retryable,
       };
     }
+
+    const deliveries = parseDeliveries(job);
+    if (deliveries.length > 0) result.deliveries = deliveries;
 
     return result;
   },
