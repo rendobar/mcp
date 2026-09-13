@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { z } from "zod";
 import { jobTools } from "../../../src/tools/jobs.js";
-import { ctx } from "./helpers.js";
+import { ctx, NO_EXTRA, pickTool } from "./helpers.js";
 
 describe("list_jobs", () => {
   it("surfaces file url + cost on complete; null cost and no output otherwise", async () => {
@@ -598,5 +598,38 @@ describe("list_job_types", () => {
     const c = ctx({ jobs: { types } });
     const tool = jobTools().find((t) => t.name === "list_job_types");
     await expect(tool!.execute({}, c, {} as never)).rejects.toThrow("network down");
+  });
+});
+
+describe("submit_job destinations", () => {
+  const submitJob = () => pickTool(jobTools(), "submit_job");
+  // Typed with an accepted arg so `.mock.calls[0]?.[0]` below isn't an empty tuple.
+  const created = () => vi.fn(async (_input: unknown) => ({ id: "job_1", status: "waiting" }));
+  const base = {
+    type: "ffmpeg",
+    inputs: { source: "storage://prod-media/raw/clip.mp4" },
+    params: { command: "ffmpeg -i source -t 2 out.mp4" },
+  };
+
+  it("forwards destinations to POST /jobs unchanged", async () => {
+    const create = created();
+    await submitJob().execute({ ...base, destinations: ["storage://prod-media/exports"] } as never, ctx({ jobs: { create } }), NO_EXTRA);
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ destinations: ["storage://prod-media/exports"] }));
+  });
+
+  it("leaves destinations off when the caller names none, so the org default still applies", async () => {
+    const create = created();
+    await submitJob().execute(base as never, ctx({ jobs: { create } }), NO_EXTRA);
+    expect(create.mock.calls[0]?.[0]).not.toHaveProperty("destinations");
+  });
+
+  it("passes an empty list through, which keeps the output off every bucket", async () => {
+    const create = created();
+    await submitJob().execute({ ...base, destinations: [] } as never, ctx({ jobs: { create } }), NO_EXTRA);
+    expect(create.mock.calls[0]?.[0]).toHaveProperty("destinations", []);
+  });
+
+  it("tells the agent where storage ids come from", () => {
+    expect(submitJob().description).toContain("list_storage");
   });
 });
