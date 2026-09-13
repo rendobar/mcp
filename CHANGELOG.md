@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.1](https://github.com/rendobar/mcp/compare/v1.12.0...v1.12.1) (2026-09-13)
+
+
+### Bug Fixes
+
+* **tools:** encode %, ? and # in storage file URIs ([#156](https://github.com/rendobar/mcp/issues/156)) ([b03018f](https://github.com/rendobar/mcp/commit/b03018f135b1955ce9e12306e62050825361169e))
+
 ## [1.12.0](https://github.com/rendobar/mcp/compare/v1.11.3...v1.12.0) (2026-09-13)
 
 
