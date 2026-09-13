@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
+import { z } from "zod";
 import { ApiError } from "@rendobar/sdk";
-import { storageTools } from "../../../src/tools/storage.js";
+import { withErrorMapping } from "../../../src/errors.js";
+import { storageTools, withStorageScopeHint } from "../../../src/tools/storage.js";
 import { ctx, NO_EXTRA, pickTool } from "./helpers.js";
 
 const tool = (name: string) => pickTool(storageTools(), name);
@@ -58,6 +60,21 @@ describe("list_storage", () => {
       note: expect.stringContaining("storage://<id>/<path>"),
     });
   });
+
+  it("keeps valid connections and drops only the malformed one when the list mixes both", async () => {
+    const mixed = [
+      { id: "good", provider: "s3", bucket: "good-bucket", createdAt: 1, updatedAt: 2 },
+      // Missing bucket: fails connectionSchema and must not sink the whole page.
+      { id: "bad", provider: "s3", createdAt: 1, updatedAt: 2 },
+    ];
+    const out = await tool("list_storage").execute({}, ctx(listing(mixed)), NO_EXTRA);
+    expect(out).toEqual({
+      storage: [
+        { id: "good", provider: "s3", bucket: "good-bucket", access: "deliver", defaultDestination: false, pending: false },
+      ],
+      note: expect.stringContaining("storage://<id>/<path>"),
+    });
+  });
 });
 
 describe("list_storage_files", () => {
@@ -74,7 +91,10 @@ describe("list_storage_files", () => {
   it("lists one level under a folder and gives every entry its storage URI", async () => {
     const sdk = objects(page);
     const out = await tool("list_storage_files").execute({ storageId: "prod-media", prefix: "raw/" }, ctx(sdk), NO_EXTRA);
-    expect(sdk.storage.listObjects).toHaveBeenCalledWith("prod-media", { prefix: "raw/", cursor: undefined, limit: undefined });
+    // Omitted limit sends the 100-entry default page size, not the API's own
+    // 1000-entry default: a full page costs ~55K tokens, and the cursor still
+    // reaches every file at 100.
+    expect(sdk.storage.listObjects).toHaveBeenCalledWith("prod-media", { prefix: "raw/", cursor: undefined, limit: 100 });
     expect(out).toEqual({
       folders: [{ prefix: "raw/2026/", uri: "storage://prod-media/raw/2026/" }],
       files: [
@@ -95,6 +115,29 @@ describe("list_storage_files", () => {
     const sdk = { storage: { listObjects: vi.fn(async () => { throw noScope(); }) } };
     await expect(tool("list_storage_files").execute({ storageId: "prod-media" }, ctx(sdk), NO_EXTRA)).rejects.toMatchObject({
       message: expect.stringContaining("new API key"),
+    });
+  });
+
+  it("rejects a limit above the API's own page-size cap", () => {
+    const limit = tool("list_storage_files").inputSchema.limit;
+    if (!(limit instanceof z.ZodType)) throw new Error("limit schema missing");
+    expect(limit.safeParse(1001).success).toBe(false);
+    expect(limit.safeParse(1000).success).toBe(true);
+  });
+
+  it("passes a non-scope error through unchanged and surfaces it as isError with the original message", async () => {
+    const notFound = new ApiError("NOT_FOUND", 404, 'Storage "unknown" not found.');
+    expect(withStorageScopeHint(notFound)).toBe(notFound);
+
+    const sdk = { storage: { listObjects: vi.fn(async () => { throw notFound; }) } };
+    const wrapped = withErrorMapping(ctx(sdk), "list_storage_files", () =>
+      tool("list_storage_files").execute({ storageId: "unknown" }, ctx(sdk), NO_EXTRA),
+    );
+    const result = await wrapped();
+    expect(result.isError).toBe(true);
+    const text = (result.content as Array<{ text: string }>)[0]?.text ?? "{}";
+    expect(JSON.parse(text)).toMatchObject({
+      error: { code: "NOT_FOUND", message: 'Storage "unknown" not found.' },
     });
   });
 });

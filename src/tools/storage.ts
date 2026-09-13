@@ -84,6 +84,9 @@ const listStorageTool = defineTool({
   },
 });
 
+// Page size sent when limit is omitted, a token-cost default rather than a cap, since the cursor still reaches every file.
+const DEFAULT_STORAGE_LIST_LIMIT = 100;
+
 const objectsPageSchema = z.object({
   folders: z.array(z.string()),
   objects: z.array(z.object({ key: z.string(), size: z.number(), lastModified: z.number().nullable() })),
@@ -101,7 +104,13 @@ const listStorageFilesTool = defineTool({
     storageId: z.string().describe("Connection id from list_storage, e.g. 'prod-media'"),
     prefix: z.string().optional().describe("Folder to list, ending in '/', e.g. 'raw/2026/'. Omit for the top of the bucket."),
     cursor: z.string().optional().describe("The cursor from the previous page"),
-    limit: z.number().int().positive().optional().describe("Most entries to return on this page"),
+    limit: z
+      .number()
+      .int()
+      .positive()
+      .max(1000)
+      .optional()
+      .describe("Entries per page, up to 1000. Defaults to 100. Use the returned cursor to fetch the next page."),
   },
   outputSchema: {
     folders: z.array(z.object({ prefix: z.string(), uri: z.string() })),
@@ -121,7 +130,7 @@ const listStorageFilesTool = defineTool({
       const raw = await getSdk(ctx).storage.listObjects(args.storageId, {
         prefix: args.prefix,
         cursor: args.cursor,
-        limit: args.limit,
+        limit: args.limit ?? DEFAULT_STORAGE_LIST_LIMIT,
       });
       const page = objectsPageSchema.parse(raw);
       const uri = (key: string) => `storage://${args.storageId}/${key}`;
