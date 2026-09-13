@@ -46,6 +46,21 @@ export function defineTool<I extends ZodRawShape, O extends ZodRawShape>(
   return def;
 }
 
+// Common element type for heterogeneous tool arrays. Each ToolDef preserves
+// its precise per-tool input/output shape internally; we widen only at the
+// array boundary so iteration with `registerToolDef` works without TS
+// trying to unify all the per-tool input schemas into an intersection.
+//
+// The cast is necessary because `execute` is contravariant in `args` — the
+// per-tool args are narrower than `ZodRawShape`'s synthesized object. The SDK
+// validates args against the Zod inputSchema before invoking the handler, so
+// runtime safety holds; only the TS variance check needs the widening cast.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyToolDef = ToolDef<ZodRawShape, any>;
+export const widen = <I extends ZodRawShape, O extends ZodRawShape>(t: ToolDef<I, O>): AnyToolDef =>
+  // Variance escape hatch — see comment above.
+  t as unknown as AnyToolDef;
+
 /**
  * Register a single ToolDef on the McpServer with the standard error-mapping wrapper.
  *
