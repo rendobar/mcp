@@ -1,6 +1,6 @@
 import { z, type ZodRawShape } from "zod";
 import { ApiError, isApiError } from "@rendobar/sdk";
-import { defineTool } from "./util.js";
+import { defineTool, type ToolDef } from "./util.js";
 import { getSdk } from "../context.js";
 
 /**
@@ -83,6 +83,72 @@ const listStorageTool = defineTool({
   },
 });
 
-export function storageTools() {
-  return [listStorageTool];
+const objectsPageSchema = z.object({
+  folders: z.array(z.string()),
+  objects: z.array(z.object({ key: z.string(), size: z.number(), lastModified: z.number().nullable() })),
+  cursor: z.string().nullable(),
+});
+
+const listStorageFilesTool = defineTool({
+  name: "list_storage_files",
+  title: "List Files in Connected Storage",
+  description:
+    "List the folders and files directly under a folder in one of the user's connected buckets, to find the path for a storage://<id>/<path> job input. " +
+    "Every entry carries its ready-made uri. Pass a folder's prefix to go one level deeper, and the returned cursor to read the next page. " +
+    "Read-only: it never changes the bucket. Requires a configured API key with storage access.",
+  inputSchema: {
+    storageId: z.string().describe("Connection id from list_storage, e.g. 'prod-media'"),
+    prefix: z.string().optional().describe("Folder to list, ending in '/', e.g. 'raw/2026/'. Omit for the top of the bucket."),
+    cursor: z.string().optional().describe("The cursor from the previous page"),
+    limit: z.number().int().positive().optional().describe("Most entries to return on this page"),
+  },
+  outputSchema: {
+    folders: z.array(z.object({ prefix: z.string(), uri: z.string() })),
+    files: z.array(
+      z.object({
+        key: z.string(),
+        size: z.number().describe("Bytes"),
+        lastModified: z.string().nullable().describe("ISO 8601"),
+        uri: z.string(),
+      }),
+    ),
+    cursor: z.string().nullable().describe("Pass back as cursor for the next page. Null on the last page."),
+  },
+  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+  execute: async (args, ctx) => {
+    try {
+      const raw = await getSdk(ctx).storage.listObjects(args.storageId, {
+        prefix: args.prefix,
+        cursor: args.cursor,
+        limit: args.limit,
+      });
+      const page = objectsPageSchema.parse(raw);
+      const uri = (key: string) => `storage://${args.storageId}/${key}`;
+      return {
+        folders: page.folders.map((prefix) => ({ prefix, uri: uri(prefix) })),
+        files: page.objects.map((o) => ({
+          key: o.key,
+          size: o.size,
+          lastModified: o.lastModified === null ? null : new Date(o.lastModified).toISOString(),
+          uri: uri(o.key),
+        })),
+        cursor: page.cursor,
+      };
+    } catch (e) {
+      throw withStorageScopeHint(e);
+    }
+  },
+});
+
+// Reuse the widen pattern from jobs.ts/uploads.ts so tool arrays can be iterated
+// by registerToolDef without TS attempting to unify per-tool input/output shapes
+// into an intersection.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyToolDef = ToolDef<ZodRawShape, any>;
+const widen = <I extends ZodRawShape, O extends ZodRawShape>(t: ToolDef<I, O>): AnyToolDef =>
+  // Variance escape hatch — see jobs.ts for full rationale.
+  t as unknown as AnyToolDef;
+
+export function storageTools(): readonly AnyToolDef[] {
+  return [widen(listStorageTool), widen(listStorageFilesTool)];
 }

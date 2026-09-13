@@ -46,3 +46,42 @@ describe("list_storage", () => {
     });
   });
 });
+
+describe("list_storage_files", () => {
+  const objects = (page: unknown) => ({ storage: { listObjects: vi.fn(async () => page) } });
+  const page = {
+    folders: ["raw/2026/"],
+    objects: [
+      { key: "raw/clip.mp4", size: 18_400_000, lastModified: 1_757_000_000_000 },
+      { key: "raw/notes.txt", size: 800, lastModified: null },
+    ],
+    cursor: "tok",
+  };
+
+  it("lists one level under a folder and gives every entry its storage URI", async () => {
+    const sdk = objects(page);
+    const out = await tool("list_storage_files").execute({ storageId: "prod-media", prefix: "raw/" }, ctx(sdk), NO_EXTRA);
+    expect(sdk.storage.listObjects).toHaveBeenCalledWith("prod-media", { prefix: "raw/", cursor: undefined, limit: undefined });
+    expect(out).toEqual({
+      folders: [{ prefix: "raw/2026/", uri: "storage://prod-media/raw/2026/" }],
+      files: [
+        { key: "raw/clip.mp4", size: 18_400_000, lastModified: new Date(1_757_000_000_000).toISOString(), uri: "storage://prod-media/raw/clip.mp4" },
+        { key: "raw/notes.txt", size: 800, lastModified: null, uri: "storage://prod-media/raw/notes.txt" },
+      ],
+      cursor: "tok",
+    });
+  });
+
+  it("passes the cursor and limit through for the next page", async () => {
+    const sdk = objects({ folders: [], objects: [], cursor: null });
+    await tool("list_storage_files").execute({ storageId: "prod-media", cursor: "tok", limit: 50 }, ctx(sdk), NO_EXTRA);
+    expect(sdk.storage.listObjects).toHaveBeenCalledWith("prod-media", { prefix: undefined, cursor: "tok", limit: 50 });
+  });
+
+  it("adds the scope hint when the key cannot read storage", async () => {
+    const sdk = { storage: { listObjects: vi.fn(async () => { throw noScope(); }) } };
+    await expect(tool("list_storage_files").execute({ storageId: "prod-media" }, ctx(sdk), NO_EXTRA)).rejects.toMatchObject({
+      message: expect.stringContaining("new API key"),
+    });
+  });
+});

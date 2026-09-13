@@ -78,6 +78,7 @@ describe("without an API key", () => {
     ["cancel_job", { jobId: "job_1" }],
     ["get_account", {}],
     ["list_storage", {}],
+    ["list_storage_files", { storageId: "prod-media" }],
   ];
 
   it.each(OTHERS)("%s still requires one", async (name, args) => {
