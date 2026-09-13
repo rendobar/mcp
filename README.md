@@ -266,6 +266,8 @@ Runs on **macOS, Linux and Windows**. Every release is tested on all three in CI
 | `list_jobs` | Recent jobs. |
 | `cancel_job` | Cancel a waiting, dispatched or running job. |
 | `get_account` | Balance, plan limits, active job count. |
+| `list_storage` | Buckets connected on the Storage page, for `storage://` inputs and `destinations`. |
+| `list_storage_files` | Folders and files in a connected bucket, each with its `storage://` URI. |
 
 ## Job types
 
@@ -292,6 +294,10 @@ README deliberately does not enumerate them, so it cannot go stale.
 ### Chaining
 
 A `submit_job` input can point at a previous job's output, so a multi-step edit never round-trips through your disk. For `ffmpeg` inputs, pass `{ job: "job_..." }`. For other types, read the output URL from `get_job` and pass that.
+
+### Your own storage
+
+A file in a bucket connected on the [Storage page](https://app.rendobar.com/storage) is an input as `storage://<id>/<path>`. Add `destinations: ["storage://<id>"]` to `submit_job` and the output is written back to the bucket once the job completes, reported per bucket in `get_job`'s `deliveries`. `list_storage` gives the ids and `list_storage_files` the paths. An API key made before September 13, 2026 cannot read storage, so create a new one.
 
 ## Authentication
 
