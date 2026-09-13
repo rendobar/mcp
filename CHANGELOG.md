@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.0](https://github.com/rendobar/mcp/compare/v1.11.3...v1.12.0) (2026-09-13)
+
+
+### Features
+
+* **tools:** connected storage tools and job destinations ([#153](https://github.com/rendobar/mcp/issues/153)) ([fd97db9](https://github.com/rendobar/mcp/commit/fd97db99ed284dea533f6a656f588374fc73962f))
+
 ## [1.11.3](https://github.com/rendobar/mcp/compare/v1.11.2...v1.11.3) (2026-09-06)
 
 
