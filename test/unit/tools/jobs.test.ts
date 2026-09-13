@@ -1,22 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { z } from "zod";
 import { jobTools } from "../../../src/tools/jobs.js";
-import type { RendobarContext } from "../../../src/context.js";
-
-const fakeLogger = () => ({
-  debug: vi.fn(),
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-  restoreConsole: vi.fn(),
-});
-
-const ctx = (sdk: Record<string, unknown>): RendobarContext => ({
-  logger: fakeLogger(),
-  sdk: sdk as never,
-  config: { apiKey: "rb_x", apiBase: "https://api.rendobar.com", logLevel: "info" as const },
-  cachedMaxFileSize: null,
-});
+import { ctx, NO_EXTRA, pickTool } from "./helpers.js";
 
 describe("list_jobs", () => {
   it("surfaces file url + cost on complete; null cost and no output otherwise", async () => {
@@ -613,5 +598,78 @@ describe("list_job_types", () => {
     const c = ctx({ jobs: { types } });
     const tool = jobTools().find((t) => t.name === "list_job_types");
     await expect(tool!.execute({}, c, {} as never)).rejects.toThrow("network down");
+  });
+});
+
+describe("submit_job destinations", () => {
+  const submitJob = () => pickTool(jobTools(), "submit_job");
+  // Typed with an accepted arg so `.mock.calls[0]?.[0]` below isn't an empty tuple.
+  const created = () => vi.fn(async (_input: unknown) => ({ id: "job_1", status: "waiting" }));
+  const base = {
+    type: "ffmpeg",
+    inputs: { source: "storage://prod-media/raw/clip.mp4" },
+    params: { command: "ffmpeg -i source -t 2 out.mp4" },
+  };
+
+  it("forwards destinations to POST /jobs unchanged", async () => {
+    const create = created();
+    await submitJob().execute({ ...base, destinations: ["storage://prod-media/exports"] }, ctx({ jobs: { create } }), NO_EXTRA);
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ destinations: ["storage://prod-media/exports"] }));
+  });
+
+  it("leaves destinations off when the caller names none, so the org default still applies", async () => {
+    const create = created();
+    await submitJob().execute(base, ctx({ jobs: { create } }), NO_EXTRA);
+    expect(create.mock.calls[0]?.[0]).not.toHaveProperty("destinations");
+  });
+
+  it("passes an empty list through, which keeps the output off every bucket", async () => {
+    const create = created();
+    await submitJob().execute({ ...base, destinations: [] }, ctx({ jobs: { create } }), NO_EXTRA);
+    expect(create.mock.calls[0]?.[0]).toHaveProperty("destinations", []);
+  });
+
+  it("tells the agent where storage ids come from", () => {
+    expect(submitJob().description).toContain("list_storage");
+  });
+});
+
+describe("get_job deliveries", () => {
+  const getJob = () => pickTool(jobTools(), "get_job");
+  const completeJob = (extra: Record<string, unknown>) => ({
+    id: "job_1",
+    type: "ffmpeg",
+    status: "complete",
+    createdAt: 1_000,
+    completedAt: 4_000,
+    steps: [],
+    output: { data: null, file: null, files: [], expiresAt: null },
+    ...extra,
+  });
+  const read = (job: Record<string, unknown>) =>
+    getJob().execute({ jobId: "job_1" }, ctx({ jobs: { get: vi.fn(async () => job) } }), NO_EXTRA);
+
+  it("reports each destination's outcome", async () => {
+    const deliveries = [
+      { storageId: "prod-media", status: "delivered", path: "exports/clip.mp4", url: "https://media.example.com/exports/clip.mp4" },
+      { storageId: "archive", status: "failed", reason: "destination_denied" },
+      { storageId: "backup", status: "pending" },
+    ];
+    expect(await read(completeJob({ deliveries }))).toMatchObject({ status: "complete", deliveries });
+  });
+
+  it("adds no deliveries key for a job that named no destinations", async () => {
+    expect(await read(completeJob({}))).not.toHaveProperty("deliveries");
+  });
+
+  it("keeps the well-formed deliveries when one entry is not", async () => {
+    const result = await read(completeJob({ deliveries: [{ storageId: "prod-media", status: "delivered" }, { status: 7 }] }));
+    expect(result).toMatchObject({ deliveries: [{ storageId: "prod-media", status: "delivered" }] });
+  });
+
+  it("drops a deliveries field that is not a list without losing the rest of the job", async () => {
+    const result = await read(completeJob({ deliveries: "not a list", cost: { amount: 1, currency: "USD", formatted: "$0.01" } }));
+    expect(result).not.toHaveProperty("deliveries");
+    expect(result).toMatchObject({ cost: "$0.01" });
   });
 });

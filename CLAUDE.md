@@ -68,7 +68,8 @@ src/
     ├── util.ts     # defineTool helper
     ├── uploads.ts  # upload_file
     ├── jobs.ts     # submit_job, get_job, list_jobs, cancel_job
-    └── account.ts  # get_account
+    ├── account.ts  # get_account
+    └── storage.ts  # list_storage, list_storage_files
 ```
 
 ## Auth chain

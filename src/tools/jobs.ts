@@ -68,6 +68,31 @@ function parseJobShape(job: unknown): ParsedJobShape {
   return parsed.success ? parsed.data : {};
 }
 
+const deliverySchema = z.object({
+  storageId: z.string(),
+  status: z.string().describe("Open set: pending | delivered | failed"),
+  path: z.string().optional().describe("Object key written in the bucket"),
+  url: z.string().optional().describe("Where to fetch the delivered file"),
+  reason: z.string().optional().describe("Why a delivery failed, as the API's reason code"),
+  renamed: z.boolean().optional().describe("The name was taken, so the job id was appended"),
+});
+
+type Delivery = z.infer<typeof deliverySchema>;
+
+/**
+ * Parsed apart from jobShapeSchema, entry by entry: a delivery the API reshapes
+ * must cost the agent neither the job's output and cost nor the other deliveries,
+ * which is what one failed safeParse over the whole list would do.
+ */
+function parseDeliveries(job: unknown): Delivery[] {
+  const list = z.object({ deliveries: z.array(z.unknown()) }).safeParse(job);
+  if (!list.success) return [];
+  return list.data.deliveries.flatMap((raw) => {
+    const delivery = deliverySchema.safeParse(raw);
+    return delivery.success ? [delivery.data] : [];
+  });
+}
+
 /**
  * Reshape the unified `output` to the compact form agents read: pass `data`
  * through when present (the computed answer), surface the headline `file` (url +
@@ -205,7 +230,8 @@ const getJobTool = defineTool({
   name: "get_job",
   title: "Get Rendobar Job",
   description:
-    "Check status and get results of a submitted job. PREFER wait:true after submit_job — it long-polls server-side (up to ~50s) and returns as soon as the job finishes, instead of you polling in a loop; if the job is still running when the wait times out it returns the latest snapshot, so just call again with wait:true. Returns progress, current step, cost, and output when done. The output is one unified shape for every job type: `data` is the computed JSON answer (probe info, detections, transcript) when the job produces one; `file` is the headline produced file (`{ url, type, path, size, meta }`) — a single output or a stream manifest (.m3u8/.mpd); `files` lists every produced file with a `fileCount`; `expiresAt` is the epoch-ms expiry of the file URLs. Data-only jobs have `file` null and no files; file-only jobs have no `data`. Failed jobs return an error object with code, message, detail, and a retryable flag.",
+    "Check status and get results of a submitted job. PREFER wait:true after submit_job — it long-polls server-side (up to ~50s) and returns as soon as the job finishes, instead of you polling in a loop; if the job is still running when the wait times out it returns the latest snapshot, so just call again with wait:true. Returns progress, current step, cost, and output when done. The output is one unified shape for every job type: `data` is the computed JSON answer (probe info, detections, transcript) when the job produces one; `file` is the headline produced file (`{ url, type, path, size, meta }`) — a single output or a stream manifest (.m3u8/.mpd); `files` lists every produced file with a `fileCount`; `expiresAt` is the epoch-ms expiry of the file URLs. Data-only jobs have `file` null and no files; file-only jobs have no `data`. Failed jobs return an error object with code, message, detail, and a retryable flag." +
+    " When the job named destinations, deliveries reports each bucket write. Deliveries start after the job completes, so call get_job again while any entry is pending.",
   inputSchema: {
     jobId: z.string().describe("Job ID returned by submit_job (e.g. 'job_abc123')"),
     wait: z
@@ -227,6 +253,10 @@ const getJobTool = defineTool({
     durationMs: z.number().optional(),
     output: outputShapeSchema.optional().describe("Present when complete"),
     error: jobErrorSchema.optional().describe("Present when failed"),
+    deliveries: z
+      .array(deliverySchema)
+      .optional()
+      .describe("One entry per destination, present when the job named destinations"),
   },
   annotations: {
     readOnlyHint: true,
@@ -306,6 +336,9 @@ const getJobTool = defineTool({
       };
     }
 
+    const deliveries = parseDeliveries(job);
+    if (deliveries.length > 0) result.deliveries = deliveries;
+
     return result;
   },
 });
@@ -344,6 +377,9 @@ const SUBMIT_JOB_DESCRIPTION =
   `FFmpeg also accepts an optional params.compute ('auto' | 'cpu' | 'gpu'). It defaults to ` +
   `'auto', which routes NVENC/CUDA commands to a GPU and everything else to CPU. Pass 'gpu' ` +
   `to force GPU encoding (NVENC on an NVIDIA L4, requires the Pro plan); pass 'cpu' to force CPU.` +
+  `\n\nFiles in the user's connected buckets are inputs too, as storage://<id>/<path>, and ` +
+  `destinations writes the output back into a bucket once the job completes. Call ` +
+  `list_storage for the ids and list_storage_files for the paths.` +
   `\n\nFor local files, call upload_file first to get a downloadUrl, then use it as inputs.source. ` +
   `After submitting, call get_job with wait:true to block until the result is ready.`;
 
@@ -387,6 +423,16 @@ const submitJobInputSchema = {
     .string()
     .optional()
     .describe("Prevents duplicate jobs on retry. Unique value per logical operation."),
+  destinations: z
+    .array(z.string())
+    .optional()
+    .describe(
+      "Deliver the output to the user's own storage once complete: storage://<id>[/<folder or path template>], one per bucket. " +
+        "A bare id uses the connection's output path template, and a folder (storage://prod-media/exports) keeps that template's file name inside it. " +
+        "A path with a token ({job_id} {ext} {source_name} {date}) or ending in a file name is used as written. " +
+        "Ids come from list_storage, and a connection whose access is \"read\" cannot be a destination. " +
+        "Omit it to use the account's default destination if one is set. Pass [] to keep the output on Rendobar only.",
+    ),
 };
 
 /**
@@ -439,6 +485,9 @@ const submitJobTool = defineTool({
         inputs: args.inputs,
         params: args.params,
         idempotencyKey: args.idempotencyKey,
+        // Absent and [] mean different things to the API: absent takes the org
+        // default destination, [] opts out of it. Never collapse one into the other.
+        ...(args.destinations === undefined ? {} : { destinations: args.destinations }),
       });
       // SDK's `create` returns JobCreatedResponse = { id, status: "waiting" } directly,
       // NO `data` wrapper (request layer auto-unwraps single-item envelopes).
