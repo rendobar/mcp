@@ -13,9 +13,9 @@ const connectionSchema = z.object({
   id: z.string(),
   provider: z.string(),
   bucket: z.string(),
-  access: z.literal("read").optional(),
-  pending: z.literal(true).optional(),
-  defaultDestination: z.literal(true).optional(),
+  access: z.string().optional(),
+  pending: z.boolean().optional(),
+  defaultDestination: z.boolean().optional(),
 });
 
 const SCOPE_HINT =
@@ -38,6 +38,7 @@ const listStorageTool = defineTool({
     "Use an id as storage://<id>/<path> for a job input, or in submit_job's destinations to deliver an output into the bucket, unless its access is \"read\". " +
     "A pending connection is still being set up and cannot be used yet. " +
     "Credentials are never returned. Read-only. Requires a configured API key with storage access.",
+  // A bare `{}` would infer as the empty-object type, not ZodRawShape, which defineTool expects.
   inputSchema: {} as ZodRawShape,
   outputSchema: {
     storage: z.array(

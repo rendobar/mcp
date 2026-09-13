@@ -45,6 +45,19 @@ describe("list_storage", () => {
       message: expect.stringContaining("new API key"),
     });
   });
+
+  it("keeps a connection the API sent with explicit false/deliver defaults", async () => {
+    const explicit = [
+      { id: "explicit-defaults", provider: "s3", bucket: "explicit", access: "deliver", pending: false, defaultDestination: false, createdAt: 1, updatedAt: 2 },
+    ];
+    const out = await tool("list_storage").execute({}, ctx(listing(explicit)), NO_EXTRA);
+    expect(out).toEqual({
+      storage: [
+        { id: "explicit-defaults", provider: "s3", bucket: "explicit", access: "deliver", pending: false, defaultDestination: false },
+      ],
+      note: expect.stringContaining("storage://<id>/<path>"),
+    });
+  });
 });
 
 describe("list_storage_files", () => {
