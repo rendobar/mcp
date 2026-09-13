@@ -193,6 +193,7 @@ describe("MCP server boots without an API key", () => {
       "cancel_job",
       "list_job_types",
       "upload_file",
+      "list_storage",
     ]) {
       expect(names.has(name)).toBe(true);
     }

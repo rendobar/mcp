@@ -16,6 +16,7 @@ import { tmpdir } from "node:os";
 import { jobTools } from "../../../src/tools/jobs.js";
 import { accountTools } from "../../../src/tools/account.js";
 import { uploadTools } from "../../../src/tools/uploads.js";
+import { storageTools } from "../../../src/tools/storage.js";
 import { ConfigError } from "../../../src/config.js";
 import type { RendobarContext } from "../../../src/context.js";
 import { fakeLogger, NO_EXTRA, pickTool } from "./helpers.js";
@@ -42,7 +43,7 @@ const keylessCtx = (): RendobarContext => ({
   cachedMaxFileSize: null,
 });
 
-const allTools = [...jobTools(), ...accountTools(), ...uploadTools()];
+const allTools = [...jobTools(), ...accountTools(), ...uploadTools(), ...storageTools()];
 const toolNamed = (name: string) => pickTool(allTools, name);
 
 describe("without an API key", () => {
@@ -76,6 +77,7 @@ describe("without an API key", () => {
     ["list_jobs", {}],
     ["cancel_job", { jobId: "job_1" }],
     ["get_account", {}],
+    ["list_storage", {}],
   ];
 
   it.each(OTHERS)("%s still requires one", async (name, args) => {
