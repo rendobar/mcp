@@ -1,10 +1,9 @@
 import { z } from "zod";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { defineTool, type ToolDef, type ToolExtra } from "./util.js";
+import { defineTool, type AnyToolDef, type ToolExtra, widen } from "./util.js";
 import { resolveSafe } from "../paths.js";
 import { getSdk } from "../context.js";
-import type { ZodRawShape } from "zod";
 import type { RendobarContext } from "../context.js";
 
 async function ensureCachedMaxFileSize(ctx: RendobarContext): Promise<number> {
@@ -91,14 +90,6 @@ const uploadFileTool = defineTool({
     }
   },
 });
-
-// Reuse the widen pattern from jobs.ts so tool arrays can be iterated by registerToolDef
-// without TS attempting to unify per-tool input shapes into an intersection.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyToolDef = ToolDef<ZodRawShape, any>;
-const widen = <I extends ZodRawShape, O extends ZodRawShape>(t: ToolDef<I, O>): AnyToolDef =>
-  // Variance escape hatch — see jobs.ts for full rationale.
-  t as unknown as AnyToolDef;
 
 export function uploadTools(): readonly AnyToolDef[] {
   return [widen(uploadFileTool)];

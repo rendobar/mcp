@@ -1,6 +1,6 @@
 import { z, type ZodRawShape } from "zod";
 import { ApiError, WaitTimeoutError, isApiError } from "@rendobar/sdk";
-import { defineTool, type ToolDef } from "./util.js";
+import { defineTool, type AnyToolDef, widen } from "./util.js";
 import { getPublicSdk, getSdk } from "../context.js";
 import type { RendobarContext } from "../context.js";
 
@@ -596,21 +596,6 @@ const listJobTypesTool = defineTool({
 });
 
 // ── Factories ─────────────────────────────────────────────────
-
-// Common element type for heterogeneous tool arrays. Each ToolDef preserves
-// its precise per-tool input/output shape internally; we widen only at the
-// array boundary so iteration with `registerToolDef` works without TS
-// trying to unify all the per-tool input schemas into an intersection.
-//
-// The cast is necessary because `execute` is contravariant in `args` — the
-// per-tool args are narrower than `ZodRawShape`'s synthesized object. The SDK
-// validates args against the Zod inputSchema before invoking the handler, so
-// runtime safety holds; only the TS variance check needs the widening cast.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyToolDef = ToolDef<ZodRawShape, any>;
-const widen = <I extends ZodRawShape, O extends ZodRawShape>(t: ToolDef<I, O>): AnyToolDef =>
-  // Variance escape hatch — see comment above.
-  t as unknown as AnyToolDef;
 
 /**
  * Every job tool. No registry read at registration: nothing in a tool

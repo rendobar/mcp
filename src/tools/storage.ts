@@ -1,6 +1,6 @@
 import { z, type ZodRawShape } from "zod";
 import { ApiError, isApiError } from "@rendobar/sdk";
-import { defineTool, type ToolDef } from "./util.js";
+import { defineTool, type AnyToolDef, widen } from "./util.js";
 import { getSdk } from "../context.js";
 
 /**
@@ -149,15 +149,6 @@ const listStorageFilesTool = defineTool({
     }
   },
 });
-
-// Reuse the widen pattern from jobs.ts/uploads.ts so tool arrays can be iterated
-// by registerToolDef without TS attempting to unify per-tool input/output shapes
-// into an intersection.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyToolDef = ToolDef<ZodRawShape, any>;
-const widen = <I extends ZodRawShape, O extends ZodRawShape>(t: ToolDef<I, O>): AnyToolDef =>
-  // Variance escape hatch — see jobs.ts for full rationale.
-  t as unknown as AnyToolDef;
 
 export function storageTools(): readonly AnyToolDef[] {
   return [widen(listStorageTool), widen(listStorageFilesTool)];
