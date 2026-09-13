@@ -84,6 +84,17 @@ const listStorageTool = defineTool({
   },
 });
 
+/**
+ * Escapes the three characters a `storage://<id>/<path>` reference cannot carry
+ * literally, per the platform's encoding contract (rendobar/rendobar#696):
+ * `%` becomes `%25`, `?` becomes `%3F`, `#` becomes `%23`. One pass over the
+ * string, so an existing `%` is never escaped a second time. Everything else
+ * (spaces, unicode, `/`) stays literal.
+ */
+export function encodeStoragePath(path: string): string {
+  return path.replace(/[%?#]/g, (c) => encodeURIComponent(c));
+}
+
 // Page size sent when limit is omitted, a token-cost default rather than a cap, since the cursor still reaches every file.
 const DEFAULT_STORAGE_LIST_LIMIT = 100;
 
@@ -133,7 +144,7 @@ const listStorageFilesTool = defineTool({
         limit: args.limit ?? DEFAULT_STORAGE_LIST_LIMIT,
       });
       const page = objectsPageSchema.parse(raw);
-      const uri = (key: string) => `storage://${args.storageId}/${key}`;
+      const uri = (key: string) => `storage://${args.storageId}/${encodeStoragePath(key)}`;
       return {
         folders: page.folders.map((prefix) => ({ prefix, uri: uri(prefix) })),
         files: page.objects.map((o) => ({

@@ -105,6 +105,26 @@ describe("list_storage_files", () => {
     });
   });
 
+  it("escapes %, ? and # in a key's uri but leaves the key field and a plain key's uri alone", async () => {
+    const sdk = objects({
+      folders: [],
+      objects: [
+        { key: "a%b?c#d.mp4", size: 10, lastModified: null },
+        { key: "raw/clip.mp4", size: 20, lastModified: null },
+      ],
+      cursor: null,
+    });
+    const out = await tool("list_storage_files").execute({ storageId: "prod-media" }, ctx(sdk), NO_EXTRA);
+    expect(out).toEqual({
+      folders: [],
+      files: [
+        { key: "a%b?c#d.mp4", size: 10, lastModified: null, uri: "storage://prod-media/a%25b%3Fc%23d.mp4" },
+        { key: "raw/clip.mp4", size: 20, lastModified: null, uri: "storage://prod-media/raw/clip.mp4" },
+      ],
+      cursor: null,
+    });
+  });
+
   it("passes the cursor and limit through for the next page", async () => {
     const sdk = objects({ folders: [], objects: [], cursor: null });
     await tool("list_storage_files").execute({ storageId: "prod-media", cursor: "tok", limit: 50 }, ctx(sdk), NO_EXTRA);
