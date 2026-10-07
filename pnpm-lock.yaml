@@ -16,13 +16,13 @@ importers:
         version: 1.32.0(zod@4.6.5)
       '@posthog/mcp':
         specifier: ^0.13.0
-        version: 0.13.0(@modelcontextprotocol/sdk@1.32.0(zod@4.6.5))(posthog-node@5.54.1)
+        version: 0.13.0(@modelcontextprotocol/sdk@1.32.0(zod@4.6.5))(posthog-node@5.55.0)
       '@rendobar/sdk':
         specifier: ^5.11.0
         version: 5.11.1
       posthog-node:
         specifier: ^5.45.2
-        version: 5.54.1
+        version: 5.55.0
       zod:
         specifier: ^4.4.3
         version: 4.6.5
@@ -1473,8 +1473,8 @@ packages:
     resolution: {integrity: sha512-RRuzqDtt5Y9h3quz5hWhK+TPnsmVs6WwSU6LkJMeY4HstUEDuYTG8UJSdawMRzmzAtV+KEoG8N3Qg2qLy5vM/A==}
     engines: {node: ^10 || ^12 || >=14}
 
-  posthog-node@5.54.1:
-    resolution: {integrity: sha512-3+tg86gLKRaR+MjQOdALGUJQDAXHWVyDUJI2h3EJa0c4GWTQu3+R62C3t49dz1T3QWyJq1msq5Qa+B55/ZEHxg==}
+  posthog-node@5.55.0:
+    resolution: {integrity: sha512-8dFtlDTqs0CKGZ8t4mUnk4NdShAgzru3B9D0MfM/NTBzlRyAjctivzWINLtMLRQxYjvgBohxy7RTwiQf4mPycQ==}
     engines: {node: ^20.20.0 || >=22.22.0}
     peerDependencies:
       rxjs: ^7.0.0
@@ -2108,10 +2108,10 @@ snapshots:
     dependencies:
       '@posthog/types': 1.412.4
 
-  '@posthog/mcp@0.13.0(@modelcontextprotocol/sdk@1.32.0(zod@4.6.5))(posthog-node@5.54.1)':
+  '@posthog/mcp@0.13.0(@modelcontextprotocol/sdk@1.32.0(zod@4.6.5))(posthog-node@5.55.0)':
     dependencies:
       '@posthog/core': 1.50.5
-      posthog-node: 5.54.1
+      posthog-node: 5.55.0
     optionalDependencies:
       '@modelcontextprotocol/sdk': 1.32.0(zod@4.6.5)
 
@@ -3084,7 +3084,7 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
-  posthog-node@5.54.1:
+  posthog-node@5.55.0:
     dependencies:
       '@posthog/core': 1.55.2
 
