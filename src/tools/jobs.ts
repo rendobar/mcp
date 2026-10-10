@@ -30,6 +30,9 @@ const fileSchema = z.object({
   // grow the set — accept any string rather than reject unknown types.
   type: z.string(),
   size: z.number(),
+  // SHA-256 of the file as lowercase hex. The API sends null when it has none,
+  // and an API older than the field sends no key at all: both read as null here.
+  sha256: z.string().nullable().default(null),
   meta: z.record(z.string(), z.unknown()).optional(),
 });
 

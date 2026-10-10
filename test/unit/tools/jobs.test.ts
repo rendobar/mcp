@@ -111,6 +111,7 @@ describe("get_job", () => {
       path: "output.mp4",
       type: "video",
       size: 5_000_000,
+      sha256: "6d4e00f20563d9c06310b5d44777796b5d4a6ca60fbc86f6349a6ef1d6718995",
       meta: { format: "mp4", width: 1920, height: 1080, durationMs: 60000 },
     };
     const sdk = {
@@ -144,6 +145,7 @@ describe("get_job", () => {
         file: {
           url: "https://cdn.rendobar.com/job_abc/output.mp4",
           type: "video",
+          sha256: "6d4e00f20563d9c06310b5d44777796b5d4a6ca60fbc86f6349a6ef1d6718995",
           meta: { format: "mp4", width: 1920, height: 1080, durationMs: 60000 },
         },
         fileCount: 1,
