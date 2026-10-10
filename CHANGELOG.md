@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.0](https://github.com/rendobar/mcp/compare/v1.12.1...v1.13.0) (2026-10-10)
+
+
+### Features
+
+* surface output.file.sha256 from get_job ([#187](https://github.com/rendobar/mcp/issues/187)) ([a73f6e3](https://github.com/rendobar/mcp/commit/a73f6e3234a4613627ac005405fd4c7fd6293d0d))
+
 ## [1.12.1](https://github.com/rendobar/mcp/compare/v1.12.0...v1.12.1) (2026-09-13)
 
 
