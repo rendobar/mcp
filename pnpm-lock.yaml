@@ -13,10 +13,10 @@ importers:
     dependencies:
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
-        version: 1.32.1(zod@4.6.5)
+        version: 1.32.1(zod@4.6.7)
       '@posthog/mcp':
         specifier: ^0.13.0
-        version: 0.13.0(@modelcontextprotocol/sdk@1.32.1(zod@4.6.5))(posthog-node@5.55.1)
+        version: 0.13.0(@modelcontextprotocol/sdk@1.32.1(zod@4.6.7))(posthog-node@5.55.1)
       '@rendobar/sdk':
         specifier: ^5.11.0
         version: 5.13.1
@@ -25,7 +25,7 @@ importers:
         version: 5.55.1
       zod:
         specifier: ^4.4.3
-        version: 4.6.5
+        version: 4.6.7
     devDependencies:
       '@types/node':
         specifier: ^24.13.2
@@ -1860,8 +1860,8 @@ packages:
     peerDependencies:
       zod: ^4.4.3
 
-  zod@4.6.5:
-    resolution: {integrity: sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q==}
+  zod@4.6.7:
+    resolution: {integrity: sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==}
 
 snapshots:
 
@@ -2056,7 +2056,7 @@ snapshots:
 
   '@keyv/serialize@1.1.1': {}
 
-  '@modelcontextprotocol/sdk@1.32.1(zod@4.6.5)':
+  '@modelcontextprotocol/sdk@1.32.1(zod@4.6.7)':
     dependencies:
       '@hono/node-server': 2.0.12(hono@4.12.33)
       ajv: 8.20.0
@@ -2073,8 +2073,8 @@ snapshots:
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
       raw-body: 3.0.2
-      zod: 4.6.5
-      zod-to-json-schema: 3.25.2(zod@4.6.5)
+      zod: 4.6.7
+      zod-to-json-schema: 3.25.2(zod@4.6.7)
     transitivePeerDependencies:
       - supports-color
 
@@ -2108,12 +2108,12 @@ snapshots:
     dependencies:
       '@posthog/types': 1.415.2
 
-  '@posthog/mcp@0.13.0(@modelcontextprotocol/sdk@1.32.1(zod@4.6.5))(posthog-node@5.55.1)':
+  '@posthog/mcp@0.13.0(@modelcontextprotocol/sdk@1.32.1(zod@4.6.7))(posthog-node@5.55.1)':
     dependencies:
       '@posthog/core': 1.50.5
       posthog-node: 5.55.1
     optionalDependencies:
-      '@modelcontextprotocol/sdk': 1.32.1(zod@4.6.5)
+      '@modelcontextprotocol/sdk': 1.32.1(zod@4.6.7)
 
   '@posthog/types@1.409.0': {}
 
@@ -3451,8 +3451,8 @@ snapshots:
 
   yocto-queue@0.1.0: {}
 
-  zod-to-json-schema@3.25.2(zod@4.6.5):
+  zod-to-json-schema@3.25.2(zod@4.6.7):
     dependencies:
-      zod: 4.6.5
+      zod: 4.6.7
 
-  zod@4.6.5: {}
+  zod@4.6.7: {}
