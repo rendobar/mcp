@@ -67,7 +67,7 @@
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@posthog/mcp": "^0.13.0",
     "@rendobar/sdk": "^5.11.0",
-    "posthog-node": "^5.45.2",
+    "posthog-node": "^6.0.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
